@@ -18,24 +18,32 @@ aes-gcm = "0.10.3"
 aes-kw = "0.2.1"
 argon2 = { version = "0.5.2" }
 cbc = "0.1.2"
+cipher = { version = "0.4", features = ["block-padding", "alloc"] }
 crypto-common = { version = "0.1", features = ["rand_core"] }
+# dhkem = "0.0.1-alpha"
+ecdsa = "0.16"
+elliptic-curve = { version = "0.13", features = ["arithmetic"] }
 hex = "0.4.3"
+hkdf = "0.12.4"
 hmac = "0.12"
 
+p256 = { version = "0.13", features = ["ecdh", "pem"] }
+p384 = "0.13"
 rand = "0.8.4"
+rsa = { version = "0.9.6", features = ["sha2", "pem"] }
+x509-cert = { version = "0.2", features = ["builder", "hazmat"] }
+const-oid = "0.9"
 
 sha2 = "0.10"
 tracing = "^0.1.37"
 
+generic-array = { version = "0.14.7", features = ["serde", "zeroize"] }
 zeroize = { version = "1.6.0", features = ["serde"] }
 
-[dependencies.generic-array]
-version = "0.14.7"
-features = [
-	"zeroize",
-	"serde",
-]
+rustls = { version = "0.23", default-features = false, features = ["custom-provider", "std"] }
+uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
+rustls-rustcrypto = "0.0.2-alpha"
 tracing-subscriber = "^0.3.17"
 
