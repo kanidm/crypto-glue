@@ -468,15 +468,46 @@ mod tests {
         use std::os::unix::net::UnixStream;
         use std::sync::Arc;
 
-        let server_private_key = new_p256_key();
+        use crate::test_ca::*;
 
-        let server_private_key_der = server_private_key.to_sec1_der().unwrap();
+        // ========================
+        // CA SETUP
 
-        let server_chain = Vec::new();
-        let server_private_key: PrivateKeyDer =
-            PrivateSec1KeyDer::from(server_private_key_der.as_slice().to_owned()).into();
+    let now = SystemTime::now();
+    let not_before = Time::try_from(now).unwrap();
+    let not_after = Time::try_from(now + Duration::new(3600, 0)).unwrap();
+
+    let (root_signing_key, root_ca_cert) = build_test_ca_root(not_before, not_after);
+
+    let subject = Name::from_str("CN=localhost").unwrap();
+
+    let (server_key, server_csr) = build_test_csr(not_before, not_after, subject);
+
+    let (server_cert) = test_ca_sign_server_csr(
+        not_before,
+        not_after,
+        &server_csr,
+        &root_signing_key,
+        &root_ca_cert,
+    );
+
+        // ========================
+
+        let server_private_key_der = server_key.to_sec1_der().unwrap();
+        let root_ca_cert_der = root_ca_cert.to_der().unwrap();
+        let server_cert_der = server_cert.to_der().unwrap();
 
         let mut ca_roots = RootCertStore::empty();
+
+        ca_roots.add(root_ca_cert_der);
+
+        let server_chain = Vec::new(
+            root_ca_cert_der,
+            server_cert_der,
+        );
+
+        let server_private_key: PrivateKeyDer =
+            PrivateSec1KeyDer::from(server_private_key_der.as_slice().to_owned()).into();
 
         let provider = Arc::new(rustls_rustcrypto::provider());
 
