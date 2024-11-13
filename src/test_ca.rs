@@ -1,7 +1,7 @@
-
 use std::time::{Duration, SystemTime};
 
 use x509_cert::builder::{Builder, CertificateBuilder, Profile, RequestBuilder};
+use x509_cert::der::asn1::Ia5String;
 use x509_cert::der::Encode;
 use x509_cert::name::Name;
 use x509_cert::request::CertReq;
@@ -370,16 +370,19 @@ pub(crate) fn build_test_ca_int(
     (int_signing_key, int_cert)
 }
 
-pub(crate) fn build_test_csr_client(not_before: Time, not_after: Time) -> (SigningKey, CertReq) {
+pub(crate) fn build_test_csr(
+    not_before: Time,
+    not_after: Time,
+    subject: Name,
+) -> (SigningKey, CertReq) {
     let mut rng = rand::thread_rng();
 
     let mut client_signing_key = SigningKey::random(&mut rng);
     let client_verifying_key = VerifyingKey::from(&client_signing_key);
+
     // Serialize with `::to_encoded_point()`
     // let int_pub_key =
     // SubjectPublicKeyInfoOwned::from_key(int_verifying_key).expect("get rsa pub key");
-
-    let subject = Name::from_str("CN=multi pass").unwrap();
 
     let mut builder = RequestBuilder::new(subject.clone(), &client_signing_key)
         .expect("Create certificate request");
@@ -414,7 +417,7 @@ pub(crate) fn build_test_csr_client(not_before: Time, not_after: Time) -> (Signi
     (client_signing_key, client_cert_req)
 }
 
-pub(crate) fn test_ca_sign_csr(
+pub(crate) fn test_ca_sign_client_csr(
     not_before: Time,
     not_after: Time,
     cert_req: &CertReq,
@@ -604,6 +607,201 @@ pub(crate) fn test_ca_sign_csr(
     (client_cert)
 }
 
+pub(crate) fn test_ca_sign_server_csr(
+    not_before: Time,
+    not_after: Time,
+    cert_req: &CertReq,
+    ca_signing_key: &SigningKey,
+    ca_cert: &CertificateInner,
+) -> (CertificateInner) {
+    let mut rng = rand::thread_rng();
+
+    // The process of issuance at this point really is up to "what do we want to copy from the
+    // csr and what don't we?".
+
+    // ------------------------
+
+    let server_serial_uuid = Uuid::new_v4();
+
+    let mut serial_bytes: [u8; 17] = [0; 17];
+    serial_bytes[0] = 0x01;
+    let mut update_bytes = &mut serial_bytes[1..];
+    update_bytes.copy_from_slice(server_serial_uuid.as_bytes());
+    drop(update_bytes);
+
+    println!("{:?}", serial_bytes);
+    let serial_number = SerialNumber::new(&serial_bytes).unwrap();
+
+    let validity = Validity {
+        not_before,
+        not_after,
+    };
+
+    let profile = Profile::Leaf {
+        issuer: ca_cert.tbs_certificate.subject.clone(),
+        enable_key_agreement: true,
+        enable_key_encipherment: true,
+        include_subject_key_identifier: true,
+    };
+
+    let server_cert_subject = cert_req.info.subject.clone();
+
+    let spki = &cert_req.info.public_key;
+
+    let mut builder = CertificateBuilder::new(
+        profile,
+        serial_number,
+        validity.clone(),
+        server_cert_subject.clone(),
+        spki.clone(),
+        ca_signing_key,
+    )
+    .expect("Create certificate");
+
+    let eku_extension = ExtendedKeyUsage(vec![const_oid::db::rfc5280::ID_KP_SERVER_AUTH]);
+
+    builder
+        .add_extension(&eku_extension)
+        .expect("Unable to add extension");
+
+    let alt_name = Ia5String::new("localhost").unwrap();
+
+    let san = SubjectAltName(vec![GeneralName::DnsName(alt_name)]);
+
+    builder
+        .add_extension(&san)
+        .expect("Unable to add extension");
+
+    let server_cert = builder.build_with_rng::<DerSignature>(&mut rng).unwrap();
+
+    let server_cert_der = server_cert.to_der().unwrap();
+    println!("{:?}", server_cert);
+
+    // VALIDATION NOW
+
+    // Server Leaf Cert
+    //   Basic Constraints: critical
+    //     CA:FALSE
+
+    let (critical, basic_constraints) = server_cert
+        .tbs_certificate
+        .get::<BasicConstraints>()
+        .expect("failed to get extensions")
+        .expect("basic constraints not present");
+
+    assert!(critical);
+    eprintln!("{:?}", basic_constraints);
+
+    assert!(!basic_constraints.ca);
+
+    //   Key Usage: critical
+    //     Digital Signature,
+    //     Non Repudiation,
+    //     Key Encipherment,
+    //     Key Agreement
+
+    let (critical, key_usage) = server_cert
+        .tbs_certificate
+        .get::<KeyUsage>()
+        .expect("failed to get extensions")
+        .expect("key usage not present");
+
+    assert!(critical);
+
+    eprintln!("{:?}", key_usage);
+    let expected_key_usages = KeyUsages::DigitalSignature
+        | KeyUsages::NonRepudiation
+        | KeyUsages::KeyAgreement
+        | KeyUsages::KeyEncipherment;
+    assert_eq!(key_usage, expected_key_usages.into());
+
+    //   Extended Key Usage
+    //     TLS Web Server Authentication
+
+    let (_, key_usage) = server_cert
+        .tbs_certificate
+        .get::<ExtendedKeyUsage>()
+        .expect("failed to get extensions")
+        .expect("extended key usage not present");
+
+    assert_eq!(key_usage.0, vec![const_oid::db::rfc5280::ID_KP_SERVER_AUTH]);
+
+    //   Authority Key ID
+    //     (Should be sha256 of the signer public key)
+
+    let (_, authority_key_id) = server_cert
+        .tbs_certificate
+        .get::<AuthorityKeyIdentifier>()
+        .expect("failed to get extensions")
+        .expect("key usage not present");
+
+    eprintln!("{:?}", authority_key_id);
+
+    //   Subject Key ID
+    let (_, int_subject_key_id) = ca_cert
+        .tbs_certificate
+        .get::<SubjectKeyIdentifier>()
+        .expect("failed to get extensions")
+        .expect("key usage not present");
+
+    assert_eq!(
+        authority_key_id.key_identifier.as_ref().unwrap(),
+        int_subject_key_id.as_ref()
+    );
+
+    //   Subject Key ID
+    let (_, server_subject_key_id) = server_cert
+        .tbs_certificate
+        .get::<SubjectKeyIdentifier>()
+        .expect("failed to get extensions")
+        .expect("key usage not present");
+
+    eprintln!("{:?}", server_subject_key_id);
+
+    //   Validity
+    assert_eq!(
+        server_cert
+            .tbs_certificate
+            .validity
+            .not_before
+            .to_unix_duration(),
+        validity.not_before.to_unix_duration()
+    );
+    assert_eq!(
+        server_cert
+            .tbs_certificate
+            .validity
+            .not_after
+            .to_unix_duration(),
+        validity.not_after.to_unix_duration()
+    );
+
+    //   Issuer == Subject of Authority Key
+    assert_eq!(
+        server_cert.tbs_certificate.issuer,
+        ca_cert.tbs_certificate.subject
+    );
+
+    //
+    //  Must have
+    //   Subject Alternative Name
+
+    //   Serial Number
+    println!(
+        "{:?}",
+        &server_cert.tbs_certificate.serial_number.as_bytes()[1..]
+    );
+    println!("{:?}", server_serial_uuid.as_bytes());
+    let verify_serial =
+        Uuid::from_slice(&server_cert.tbs_certificate.serial_number.as_bytes()[1..]).unwrap();
+
+    assert_eq!(server_serial_uuid, verify_serial);
+    //   Subject
+    assert_eq!(server_cert_subject, server_cert.tbs_certificate.subject);
+
+    (server_cert)
+}
+
 #[test]
 fn test_ca_build_process() {
     let now = SystemTime::now();
@@ -619,9 +817,11 @@ fn test_ca_build_process() {
 
     // =========================================================================================
 
-    let (client_key, client_csr) = build_test_csr_client(not_before, not_after);
+    let subject = Name::from_str("CN=multi pass").unwrap();
 
-    let (client_cert) = test_ca_sign_csr(
+    let (client_key, client_csr) = build_test_csr(not_before, not_after, subject);
+
+    let (client_cert) = test_ca_sign_client_csr(
         not_before,
         not_after,
         &client_csr,
@@ -630,6 +830,18 @@ fn test_ca_build_process() {
     );
 
     // =========================================================================================
+
+    let subject = Name::from_str("CN=localhost").unwrap();
+
+    let (server_key, server_csr) = build_test_csr(not_before, not_after, subject);
+
+    let (server_cert) = test_ca_sign_server_csr(
+        not_before,
+        not_after,
+        &client_csr,
+        &int_signing_key,
+        &int_ca_cert,
+    );
 
     // Server Leaf Cert
     //   Basic Constraints: critical
