@@ -455,6 +455,10 @@ mod tests {
         };
         use std::os::unix::net::UnixStream;
         use std::sync::Arc;
+        use std::io::Write;
+        use std::io::Read;
+
+        use std::sync::atomic::{AtomicU16, Ordering};
 
         use std::str::FromStr;
         use std::time::Duration;
@@ -516,8 +520,8 @@ mod tests {
             .unwrap();
 
         let server_chain = vec![
-            CertificateDer::from(root_ca_cert_der),
             CertificateDer::from(server_cert_der),
+            CertificateDer::from(root_ca_cert_der),
         ];
 
         let server_private_key: PrivateKeyDer =
@@ -544,15 +548,41 @@ mod tests {
 
         let server_name = ServerName::try_from("localhost").expect("invalid DNS name");
 
-        let mut client_connection = ClientConnection::new(client_tls_config, server_name).unwrap();
+        let (mut server_unix_stream, mut client_unix_stream) = UnixStream::pair().unwrap();
+
+        let atomic = Arc::new(AtomicU16::new(0));
+
+        let atomic_t = atomic.clone();
+
+        let handle = std::thread::spawn(move || {
+            let mut client_connection = ClientConnection::new(client_tls_config, server_name).unwrap();
+
+            let mut client = rustls::Stream::new(&mut client_connection, &mut client_unix_stream);
+
+            client.write_all(b"hello")
+                .unwrap();
+
+            while atomic_t.load(Ordering::Relaxed) != 1 {
+                std::thread::sleep(std::time::Duration::from_millis(1));
+            }
+
+            println!("THREAD DONE");
+        });
 
         let mut server_connection = ServerConnection::new(server_tls_config).unwrap();
 
-        let (mut server_unix_stream, mut client_unix_stream) = UnixStream::pair().unwrap();
+        server_connection.complete_io(&mut server_unix_stream).unwrap();
 
-        let mut client = rustls::Stream::new(&mut client_connection, &mut client_unix_stream);
+        server_connection.complete_io(&mut server_unix_stream).unwrap();
 
-        let mut server = rustls::Stream::new(&mut server_connection, &mut server_unix_stream);
+        let mut buf: [u8; 5] = [0; 5];
+        server_connection.reader().read(&mut buf).unwrap();
+
+        assert_eq!(&buf, b"hello");
+
+        atomic.store(1, Ordering::Relaxed);
+
+        handle.join().unwrap();
 
         // One of these needs to go to a thread somewhere.
     }
