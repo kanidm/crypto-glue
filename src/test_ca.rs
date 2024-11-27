@@ -25,8 +25,8 @@ use x509_cert::spki::DecodePublicKey;
 
 use std::str::FromStr;
 
-use p384::ecdsa::{signature::Signer, DerSignature, Signature, SigningKey};
 use p384::ecdsa::{signature::Verifier, VerifyingKey};
+use p384::ecdsa::{DerSignature, SigningKey};
 
 use crate::x509::uuid_to_serial;
 use uuid::Uuid;
@@ -48,7 +48,7 @@ pub(crate) fn build_test_ca_root(
     let profile = Profile::Root;
     let root_subject = Name::from_str("CN=Oh no he is writing a CA,O=Pls Help,C=AU").unwrap();
 
-    let mut signing_key = SigningKey::random(&mut rng);
+    let signing_key = SigningKey::random(&mut rng);
     let verifying_key = VerifyingKey::from(&signing_key); // Serialize with `::to_encoded_point()`
     let pub_key = SubjectPublicKeyInfoOwned::from_key(verifying_key).expect("get rsa pub key");
 
@@ -80,7 +80,7 @@ pub(crate) fn build_test_ca_root(
 
     let cert = builder.build_with_rng::<DerSignature>(&mut rng).unwrap();
 
-    let cert_der = cert.to_der().unwrap();
+    // let cert_der = cert.to_der().unwrap();
     println!("{:?}", cert);
 
     let cert_bytes = cert.tbs_certificate.to_der().unwrap();
@@ -179,9 +179,10 @@ pub(crate) fn build_test_ca_int(
 
     let mut serial_bytes: [u8; 17] = [0; 17];
     serial_bytes[0] = 0x01;
-    let mut update_bytes = &mut serial_bytes[1..];
-    update_bytes.copy_from_slice(int_serial_uuid.as_bytes());
-    drop(update_bytes);
+    {
+        let update_bytes = &mut serial_bytes[1..];
+        update_bytes.copy_from_slice(int_serial_uuid.as_bytes());
+    }
 
     println!("{:?}", serial_bytes);
     let serial_number = SerialNumber::new(&serial_bytes).unwrap();
@@ -197,7 +198,7 @@ pub(crate) fn build_test_ca_int(
     };
     let int_subject = Name::from_str("CN=Oh no its an intermediate,C=AU").unwrap();
 
-    let mut int_signing_key = SigningKey::random(&mut rng);
+    let int_signing_key = SigningKey::random(&mut rng);
     let int_verifying_key = VerifyingKey::from(&int_signing_key); // Serialize with `::to_encoded_point()`
     let int_pub_key =
         SubjectPublicKeyInfoOwned::from_key(int_verifying_key).expect("get rsa pub key");
@@ -246,7 +247,7 @@ pub(crate) fn build_test_ca_int(
 
     let int_cert = builder.build_with_rng::<DerSignature>(&mut rng).unwrap();
 
-    let cert_der = int_cert.to_der().unwrap();
+    // let cert_der = int_cert.to_der().unwrap();
     println!("{:?}", int_cert);
 
     let cert_bytes = int_cert.tbs_certificate.to_der().unwrap();
@@ -293,7 +294,7 @@ pub(crate) fn build_test_ca_int(
     //   "Name Constraints": https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.10
     //      Only needed for "servers".
 
-    let (critical, name_constraints) = int_cert
+    let (critical, _name_constraints) = int_cert
         .tbs_certificate
         .get::<NameConstraints>()
         .expect("failed to get extensions")
@@ -377,14 +378,14 @@ pub(crate) fn build_test_csr(
 ) -> (SigningKey, CertReq) {
     let mut rng = rand::thread_rng();
 
-    let mut client_signing_key = SigningKey::random(&mut rng);
+    let client_signing_key = SigningKey::random(&mut rng);
     let client_verifying_key = VerifyingKey::from(&client_signing_key);
 
     // Serialize with `::to_encoded_point()`
     // let int_pub_key =
     // SubjectPublicKeyInfoOwned::from_key(int_verifying_key).expect("get rsa pub key");
 
-    let mut builder = RequestBuilder::new(subject.clone(), &client_signing_key)
+    let builder = RequestBuilder::new(subject.clone(), &client_signing_key)
         .expect("Create certificate request");
 
     let client_cert_req = builder.build_with_rng::<DerSignature>(&mut rng).unwrap();
@@ -426,7 +427,7 @@ pub(crate) fn test_ca_sign_client_csr(
     cert_req: &CertReq,
     ca_signing_key: &SigningKey,
     ca_cert: &CertificateInner,
-) -> (CertificateInner) {
+) -> CertificateInner {
     let mut rng = rand::thread_rng();
 
     // The process of issuance at this point really is up to "what do we want to copy from the
@@ -438,9 +439,10 @@ pub(crate) fn test_ca_sign_client_csr(
 
     let mut serial_bytes: [u8; 17] = [0; 17];
     serial_bytes[0] = 0x01;
-    let mut update_bytes = &mut serial_bytes[1..];
-    update_bytes.copy_from_slice(client_serial_uuid.as_bytes());
-    drop(update_bytes);
+    {
+        let update_bytes = &mut serial_bytes[1..];
+        update_bytes.copy_from_slice(client_serial_uuid.as_bytes());
+    }
 
     println!("{:?}", serial_bytes);
     let serial_number = SerialNumber::new(&serial_bytes).unwrap();
@@ -489,7 +491,7 @@ pub(crate) fn test_ca_sign_client_csr(
 
     let client_cert = builder.build_with_rng::<DerSignature>(&mut rng).unwrap();
 
-    let client_cert_der = client_cert.to_der().unwrap();
+    // let client_cert_der = client_cert.to_der().unwrap();
     println!("{:?}", client_cert);
 
     // Client Leaf Cert
@@ -609,7 +611,7 @@ pub(crate) fn test_ca_sign_client_csr(
     //   Subject
     assert_eq!(client_cert_subject, client_cert.tbs_certificate.subject);
 
-    (client_cert)
+    client_cert
 }
 
 pub(crate) fn test_ca_sign_server_csr(
@@ -618,7 +620,7 @@ pub(crate) fn test_ca_sign_server_csr(
     cert_req: &CertReq,
     ca_signing_key: &SigningKey,
     ca_cert: &CertificateInner,
-) -> (CertificateInner) {
+) -> CertificateInner {
     let mut rng = rand::thread_rng();
 
     // The process of issuance at this point really is up to "what do we want to copy from the
@@ -630,9 +632,10 @@ pub(crate) fn test_ca_sign_server_csr(
 
     let mut serial_bytes: [u8; 17] = [0; 17];
     serial_bytes[0] = 0x01;
-    let mut update_bytes = &mut serial_bytes[1..];
-    update_bytes.copy_from_slice(server_serial_uuid.as_bytes());
-    drop(update_bytes);
+    {
+        let update_bytes = &mut serial_bytes[1..];
+        update_bytes.copy_from_slice(server_serial_uuid.as_bytes());
+    }
 
     println!("{:?}", serial_bytes);
     let serial_number = SerialNumber::new(&serial_bytes).unwrap();
@@ -681,7 +684,7 @@ pub(crate) fn test_ca_sign_server_csr(
 
     let server_cert = builder.build_with_rng::<DerSignature>(&mut rng).unwrap();
 
-    let server_cert_der = server_cert.to_der().unwrap();
+    // let server_cert_der = server_cert.to_der().unwrap();
     println!("{:?}", server_cert);
 
     // VALIDATION NOW
@@ -806,7 +809,7 @@ pub(crate) fn test_ca_sign_server_csr(
     //   Subject
     assert_eq!(server_cert_subject, server_cert.tbs_certificate.subject);
 
-    (server_cert)
+    server_cert
 }
 
 #[test]
@@ -826,9 +829,9 @@ fn test_ca_build_process() {
 
     let subject = Name::from_str("CN=multi pass").unwrap();
 
-    let (client_key, client_csr) = build_test_csr(not_before, not_after, subject);
+    let (_client_key, client_csr) = build_test_csr(not_before, not_after, subject);
 
-    let (client_cert) = test_ca_sign_client_csr(
+    let _client_cert = test_ca_sign_client_csr(
         not_before,
         not_after,
         &client_csr,
@@ -840,12 +843,12 @@ fn test_ca_build_process() {
 
     let subject = Name::from_str("CN=localhost").unwrap();
 
-    let (server_key, server_csr) = build_test_csr(not_before, not_after, subject);
+    let (_server_key, server_csr) = build_test_csr(not_before, not_after, subject);
 
-    let (server_cert) = test_ca_sign_server_csr(
+    let _server_cert = test_ca_sign_server_csr(
         not_before,
         not_after,
-        &client_csr,
+        &server_csr,
         &int_signing_key,
         &int_ca_cert,
     );
