@@ -396,6 +396,9 @@ pub(crate) fn build_test_csr(
 
     // Need to check the algorithm ID in future.
     let spki = &client_cert_req.info.public_key;
+
+    println!("--> {:?}", &spki);
+
     let extracted_public_key = VerifyingKey::from_public_key_der(
         // spki.subject_public_key.as_bytes().unwrap()
         spki.to_der().unwrap().as_slice(),
@@ -457,6 +460,8 @@ pub(crate) fn test_ca_sign_client_csr(
     let client_cert_subject = cert_req.info.subject.clone();
 
     let spki = &cert_req.info.public_key;
+
+    println!("--> {:?}", &spki);
 
     let mut builder = CertificateBuilder::new(
         profile,
@@ -647,6 +652,8 @@ pub(crate) fn test_ca_sign_server_csr(
     let server_cert_subject = cert_req.info.subject.clone();
 
     let spki = &cert_req.info.public_key;
+
+    println!("--> {:?}", &spki);
 
     let mut builder = CertificateBuilder::new(
         profile,

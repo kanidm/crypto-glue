@@ -230,6 +230,7 @@ dependencies = [
  "rsa",
  "rustls",
  "rustls-rustcrypto",
+ "sec1",
  "sha2",
  "tracing",
  "tracing-subscriber",
