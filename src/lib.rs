@@ -10,6 +10,18 @@ mod test_ca;
 
 pub mod x509;
 
+pub mod s256 {
+    use generic_array::GenericArray;
+    use sha2::digest::consts::U32;
+
+    pub use sha2::{
+        Sha256,
+        Digest,
+    };
+
+    pub type Sha256Output = GenericArray<u8, U32>;
+}
+
 pub mod hmac_s256 {
     use crypto_common::Key;
     use crypto_common::Output;
@@ -29,14 +41,14 @@ pub mod hmac_s256 {
 
     pub type HmacSha256Bytes = Output<HmacSha256>;
 
-    pub fn new_hmac_sha256_key() -> HmacSha256Key {
+    pub fn new_key() -> HmacSha256Key {
         use crypto_common::KeyInit;
 
         let mut rng = rand::thread_rng();
         HmacSha256::generate_key(&mut rng).into()
     }
 
-    pub fn hmac_sha256_oneshot(key: &HmacSha256Key, data: &[u8]) -> HmacSha256Output {
+    pub fn oneshot(key: &HmacSha256Key, data: &[u8]) -> HmacSha256Output {
         let mut hmac = HmacSha256::new(&key);
         hmac.update(data);
         hmac.finalize()
@@ -69,7 +81,7 @@ pub mod hmac_s512 {
         HmacSha512::generate_key(&mut rng).into()
     }
 
-    pub fn hmac_sha512_oneshot(key: &HmacSha512Key, data: &[u8]) -> HmacSha512Output {
+    pub fn oneshot(key: &HmacSha512Key, data: &[u8]) -> HmacSha512Output {
         let mut hmac = HmacSha512::new(&key);
         hmac.update(data);
         hmac.finalize()
@@ -238,7 +250,7 @@ pub mod rsa {
 
 pub mod ecdsa_p256 {
     use ecdsa::hazmat::DigestPrimitive;
-    use elliptic_curve::{PublicKey, SecretKey};
+    use elliptic_curve::{PublicKey, SecretKey, FieldBytes};
     use p256::NistP256;
 
     pub use ecdsa::signature::{DigestSigner, Signer, Verifier};
@@ -248,6 +260,8 @@ pub mod ecdsa_p256 {
     pub type EcdsaP256Digest = <NistP256 as DigestPrimitive>::Digest;
 
     pub type EcdsaP256PrivateKey = SecretKey<NistP256>;
+    pub type EcdsaP256PrivateKeyFieldBytes = FieldBytes<NistP256>;
+
     pub type EcdsaP256PublicKey = PublicKey<NistP256>;
 
     pub type EcdsaP256SigningKey = SigningKey<NistP256>;
@@ -255,7 +269,7 @@ pub mod ecdsa_p256 {
 
     pub type EcdsaP256Signature = Signature<NistP256>;
 
-    pub fn new_p256_key() -> EcdsaP256PrivateKey {
+    pub fn new_key() -> EcdsaP256PrivateKey {
         let mut rng = rand::thread_rng();
         EcdsaP256PrivateKey::random(&mut rng)
     }
@@ -263,12 +277,22 @@ pub mod ecdsa_p256 {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn sha256_basic() {
+        use crate::s256::*;
+
+        let mut hasher = Sha256::new();
+        hasher.update(&[0, 1, 2, 3]);
+        let out: Sha256Output = hasher.finalize();
+
+        eprintln!("{:?}", out.as_slice());
+    }
 
     #[test]
     fn hmac_256_basic() {
         use crate::hmac_s256::*;
 
-        let hmac_key = new_hmac_sha256_key();
+        let hmac_key = new_key();
 
         let mut hmac = HmacSha256::new(&hmac_key);
         hmac.update(&[0, 1, 2, 3]);
@@ -421,7 +445,7 @@ mod tests {
     fn ecdsa_p256_basic() {
         use crate::ecdsa_p256::*;
 
-        let priv_key = new_p256_key();
+        let priv_key = new_key();
 
         let pub_key = priv_key.public_key();
 
@@ -526,7 +550,6 @@ mod tests {
 
         let server_private_key: PrivateKeyDer =
             PrivatePkcs8KeyDer::from(server_private_key_pkcs8_der.as_bytes().to_vec())
-                // .unwrap()
                 .into();
 
         let provider = Arc::new(rustls_rustcrypto::provider());
@@ -582,8 +605,7 @@ mod tests {
 
         atomic.store(1, Ordering::Relaxed);
 
+        // If the thread paniced, this will panic.
         handle.join().unwrap();
-
-        // One of these needs to go to a thread somewhere.
     }
 }
