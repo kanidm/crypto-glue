@@ -1,6 +1,7 @@
 pub use argon2;
 pub use hex;
 pub use rand;
+pub use spki;
 pub use zeroize;
 
 pub mod prelude {}
@@ -14,10 +15,7 @@ pub mod s256 {
     use generic_array::GenericArray;
     use sha2::digest::consts::U32;
 
-    pub use sha2::{
-        Sha256,
-        Digest,
-    };
+    pub use sha2::{Digest, Sha256};
 
     pub type Sha256Output = GenericArray<u8, U32>;
 }
@@ -218,7 +216,7 @@ pub mod aes256kw {
 pub mod rsa {
     pub use rand;
     pub use rsa::pkcs1v15::{SigningKey, VerifyingKey};
-    pub use rsa::signature::{Keypair, RandomizedSigner, Verifier};
+    pub use rsa::signature::{self, Keypair, RandomizedSigner, Verifier};
     pub use rsa::{Oaep, RsaPrivateKey, RsaPublicKey};
     pub use sha2::Sha256;
 
@@ -250,12 +248,14 @@ pub mod rsa {
 
 pub mod ecdsa_p256 {
     use ecdsa::hazmat::DigestPrimitive;
-    use elliptic_curve::{PublicKey, SecretKey, FieldBytes};
+    use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
     use p256::NistP256;
 
-    pub use ecdsa::signature::{DigestSigner, Signer, Verifier};
+    pub use ecdsa::signature::{self, DigestSigner, Signer, Verifier};
     pub use ecdsa::{Signature, SigningKey, VerifyingKey};
     pub use sha2::Digest;
+
+    pub use spki::{DecodePublicKey, EncodePublicKey};
 
     pub type EcdsaP256Digest = <NistP256 as DigestPrimitive>::Digest;
 
@@ -477,10 +477,10 @@ mod tests {
             server::{ServerConfig, ServerConnection},
             RootCertStore,
         };
+        use std::io::Read;
+        use std::io::Write;
         use std::os::unix::net::UnixStream;
         use std::sync::Arc;
-        use std::io::Write;
-        use std::io::Read;
 
         use std::sync::atomic::{AtomicU16, Ordering};
 
@@ -549,8 +549,7 @@ mod tests {
         ];
 
         let server_private_key: PrivateKeyDer =
-            PrivatePkcs8KeyDer::from(server_private_key_pkcs8_der.as_bytes().to_vec())
-                .into();
+            PrivatePkcs8KeyDer::from(server_private_key_pkcs8_der.as_bytes().to_vec()).into();
 
         let provider = Arc::new(rustls_rustcrypto::provider());
 
@@ -578,12 +577,12 @@ mod tests {
         let atomic_t = atomic.clone();
 
         let handle = std::thread::spawn(move || {
-            let mut client_connection = ClientConnection::new(client_tls_config, server_name).unwrap();
+            let mut client_connection =
+                ClientConnection::new(client_tls_config, server_name).unwrap();
 
             let mut client = rustls::Stream::new(&mut client_connection, &mut client_unix_stream);
 
-            client.write_all(b"hello")
-                .unwrap();
+            client.write_all(b"hello").unwrap();
 
             while atomic_t.load(Ordering::Relaxed) != 1 {
                 std::thread::sleep(std::time::Duration::from_millis(1));
@@ -594,9 +593,13 @@ mod tests {
 
         let mut server_connection = ServerConnection::new(server_tls_config).unwrap();
 
-        server_connection.complete_io(&mut server_unix_stream).unwrap();
+        server_connection
+            .complete_io(&mut server_unix_stream)
+            .unwrap();
 
-        server_connection.complete_io(&mut server_unix_stream).unwrap();
+        server_connection
+            .complete_io(&mut server_unix_stream)
+            .unwrap();
 
         let mut buf: [u8; 5] = [0; 5];
         server_connection.reader().read(&mut buf).unwrap();

@@ -1,4 +1,3 @@
-
 use x509_cert::ext::pkix::name::GeneralName;
 
 use std::fmt;
@@ -100,7 +99,7 @@ fn subject_public_key_pretty(
     write!(f, "\n")
 }
 
-pub(crate) fn cert_to_string_pretty(
+pub fn cert_to_string_pretty(
     cert: &x509_cert::certificate::Certificate,
     f: &mut String,
 ) -> Result<(), fmt::Error> {

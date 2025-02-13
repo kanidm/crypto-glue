@@ -12,6 +12,9 @@ authors = ["William Brown <william@blackhats.net.au>"]
 default = [ "alloc" ]
 alloc = [ "argon2/alloc" ]
 
+[profile.dev.package.num-bigint-dig]
+opt-level = 3
+
 [dependencies]
 aes = "0.8.1"
 aes-gcm = "0.10.3"
@@ -20,9 +23,11 @@ argon2 = { version = "0.5.2" }
 cbc = "0.1.2"
 cipher = { version = "0.4", features = ["block-padding", "alloc"] }
 crypto-common = { version = "0.1", features = ["rand_core"] }
+der = "0.7.9"
 # dhkem = "0.0.1-alpha"
 ecdsa = "0.16"
 elliptic-curve = { version = "0.13", features = ["arithmetic"] }
+spki = "0.7.3"
 hex = "0.4.3"
 hkdf = "0.12.4"
 hmac = "0.12"
