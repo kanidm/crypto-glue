@@ -9,13 +9,26 @@ pub mod prelude {}
 #[cfg(test)]
 mod test_ca;
 
+pub mod traits {
+    pub use sha2::Digest;
+    pub use spki::{
+        DecodePublicKey as SpkiDecodePublicKey,
+        EncodePublicKey as SpkiEncodePublicKey,
+    };
+    pub use pkcs8::{
+        EncodePrivateKey as Pkcs8EncodePrivateKey,
+        DecodePrivateKey as Pkcs8DecodePrivateKey
+    };
+    pub use rsa::signature::{Keypair, DigestSigner, Signer, RandomizedSigner, Verifier, SignatureEncoding};
+}
+
 pub mod x509;
 
 pub mod s256 {
     use generic_array::GenericArray;
     use sha2::digest::consts::U32;
 
-    pub use sha2::{Digest, Sha256};
+    pub use sha2::Sha256;
 
     pub type Sha256Output = GenericArray<u8, U32>;
 }
@@ -214,15 +227,23 @@ pub mod aes256kw {
 }
 
 pub mod rsa {
+    use rsa::pkcs1v15::{SigningKey, VerifyingKey, Signature};
+    use rsa::{Oaep, RsaPrivateKey, RsaPublicKey};
+
     pub use rand;
-    pub use rsa::pkcs1v15::{SigningKey, VerifyingKey};
-    pub use rsa::signature::{self, Keypair, RandomizedSigner, Verifier};
-    pub use rsa::{Oaep, RsaPrivateKey, RsaPublicKey};
     pub use sha2::Sha256;
+    pub use rsa::pkcs1v15;
 
     pub const MIN_BITS: usize = 2048;
 
-    pub fn new_rsa_key(bits: usize) -> rsa::errors::Result<RsaPrivateKey> {
+    pub type RS256PrivateKey = RsaPrivateKey;
+    pub type RS256PublicKey = RsaPublicKey;
+    pub type RS256Signature =  Signature;
+    pub type RS256Digest = Sha256;
+    pub type RS256VerifyingKey = VerifyingKey<Sha256>;
+    pub type RS256SigningKey = SigningKey<Sha256>;
+
+    pub fn new_key(bits: usize) -> rsa::errors::Result<RsaPrivateKey> {
         let bits = std::cmp::max(bits, MIN_BITS);
         let mut rng = rand::thread_rng();
         RsaPrivateKey::new(&mut rng, bits)
@@ -250,12 +271,7 @@ pub mod ecdsa_p256 {
     use ecdsa::hazmat::DigestPrimitive;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
     use p256::NistP256;
-
-    pub use ecdsa::signature::{self, DigestSigner, Signer, Verifier};
-    pub use ecdsa::{Signature, SigningKey, VerifyingKey};
-    pub use sha2::Digest;
-
-    pub use spki::{DecodePublicKey, EncodePublicKey};
+    use ecdsa::{Signature, SigningKey, VerifyingKey};
 
     pub type EcdsaP256Digest = <NistP256 as DigestPrimitive>::Digest;
 
@@ -279,6 +295,7 @@ pub mod ecdsa_p256 {
 mod tests {
     #[test]
     fn sha256_basic() {
+        use crate::traits::*;
         use crate::s256::*;
 
         let mut hasher = Sha256::new();
@@ -415,9 +432,10 @@ mod tests {
 
     #[test]
     fn rsa_basic() {
+        use crate::traits::*;
         use crate::rsa::*;
 
-        let pkey = new_rsa_key(MIN_BITS).unwrap();
+        let pkey = new_key(MIN_BITS).unwrap();
 
         let pubkey = RsaPublicKey::from(&pkey);
 
@@ -430,27 +448,31 @@ mod tests {
         assert_eq!(plaintext, b"this is a message");
 
         // PKCS1.5 Sig
-        let signing_key = SigningKey::<Sha256>::new(pkey);
-        let verifying_key = signing_key.verifying_key();
+        let signing_key = RS256SigningKey::new(pkey);
+        let verifying_key = RS256VerifyingKey::new(pubkey);
 
         let mut rng = rand::thread_rng();
 
         let data = b"Fully sick data to sign mate.";
-        let signature = signing_key.sign_with_rng(&mut rng, data);
 
+        let signature = signing_key.sign_with_rng(&mut rng, data);
+        assert!(verifying_key.verify(data, &signature).is_ok());
+
+        let signature = signing_key.sign(data);
         assert!(verifying_key.verify(data, &signature).is_ok());
     }
 
     #[test]
     fn ecdsa_p256_basic() {
+        use crate::traits::*;
         use crate::ecdsa_p256::*;
 
         let priv_key = new_key();
 
         let pub_key = priv_key.public_key();
 
-        let signer = SigningKey::from(&priv_key);
-        let verifier = VerifyingKey::from(&pub_key);
+        let signer = EcdsaP256SigningKey::from(&priv_key);
+        let verifier = EcdsaP256VerifyingKey::from(&pub_key);
 
         // Can either sign data directly, using the correct associated hash type.
         let data = [0, 1, 2, 3, 4, 5, 6, 7];

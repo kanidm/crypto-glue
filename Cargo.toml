@@ -34,6 +34,7 @@ hmac = "0.12"
 
 p256 = { version = "0.13", features = ["ecdh", "pem"] }
 p384 = "0.13"
+pkcs8 = "0.10.2"
 rand = "0.8.4"
 rsa = { version = "0.9.6", features = ["sha2", "pem"] }
 
