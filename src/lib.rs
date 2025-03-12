@@ -64,6 +64,20 @@ pub mod hmac_s256 {
         hmac.update(data);
         hmac.finalize()
     }
+
+    pub fn key_from_vec(bytes: Vec<u8>) -> Option<HmacSha256Key> {
+        Key::<Hmac<Sha256>>::from_exact_iter(bytes.into_iter()).map(|key| key.into())
+    }
+
+    pub fn key_from_bytes(bytes: [u8; 64]) -> HmacSha256Key {
+        Key::<Hmac<Sha256>>::from(bytes)
+            .into()
+    }
+
+    pub fn key_size() -> usize {
+        use crypto_common::KeySizeUser;
+        Hmac::<Sha256>::key_size()
+    }
 }
 
 pub mod hmac_s512 {
@@ -112,8 +126,13 @@ pub mod aes256 {
         aes::Aes256::key_size()
     }
 
-    pub fn key_from_bytes(bytes: Vec<u8>) -> Option<Aes256Key> {
+    pub fn key_from_vec(bytes: Vec<u8>) -> Option<Aes256Key> {
         Key::<aes::Aes256>::from_exact_iter(bytes.into_iter()).map(|key| key.into())
+    }
+
+    pub fn key_from_bytes(bytes: [u8; 32]) -> Aes256Key {
+        Key::<aes::Aes256>::from(bytes)
+            .into()
     }
 
     pub fn new_key() -> Aes256Key {
@@ -124,7 +143,9 @@ pub mod aes256 {
 
 pub mod aes256gcm {
     use aes::cipher::consts::{U12, U16};
+    use aes::Aes256;
     use aes_gcm::aead::AeadCore;
+    use aes_gcm::AesGcm;
     use generic_array::GenericArray;
 
     pub use aes_gcm::aead::{Aead, AeadInPlace, Payload};
@@ -132,7 +153,11 @@ pub mod aes256gcm {
 
     pub use crate::aes256::Aes256Key;
 
+    // Same as  AesGcm<Aes256, U12, U16>;
     pub type Aes256Gcm = aes_gcm::Aes256Gcm;
+
+    pub type Aes256GcmN16 = AesGcm<Aes256, U16, U16>;
+    pub type Aes256GcmNonce16 = GenericArray<u8, U16>;
 
     pub type Aes256GcmNonce = GenericArray<u8, U12>;
 
@@ -228,11 +253,11 @@ pub mod aes256kw {
 
 pub mod rsa {
     use rsa::pkcs1v15::{SigningKey, VerifyingKey, Signature};
-    use rsa::{Oaep, RsaPrivateKey, RsaPublicKey};
+    use rsa::{RsaPrivateKey, RsaPublicKey};
 
     pub use rand;
     pub use sha2::Sha256;
-    pub use rsa::pkcs1v15;
+    pub use rsa::{pkcs1v15, Oaep};
 
     pub const MIN_BITS: usize = 2048;
 
@@ -437,7 +462,7 @@ mod tests {
 
         let pkey = new_key(MIN_BITS).unwrap();
 
-        let pubkey = RsaPublicKey::from(&pkey);
+        let pubkey = RS256PublicKey::from(&pkey);
 
         // OAEP
 
