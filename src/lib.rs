@@ -10,19 +10,32 @@ pub mod prelude {}
 mod test_ca;
 
 pub mod traits {
+    pub use pkcs8::{
+        DecodePrivateKey as Pkcs8DecodePrivateKey, EncodePrivateKey as Pkcs8EncodePrivateKey,
+    };
+    pub use rsa::pkcs1::{
+        DecodeRsaPrivateKey as Pkcs1DecodeRsaPrivateKey
+    };
+    pub use rsa::signature::{
+        DigestSigner, Keypair, RandomizedSigner, SignatureEncoding, Signer, Verifier,
+    };
     pub use sha2::Digest;
     pub use spki::{
-        DecodePublicKey as SpkiDecodePublicKey,
-        EncodePublicKey as SpkiEncodePublicKey,
+        DecodePublicKey as SpkiDecodePublicKey, EncodePublicKey as SpkiEncodePublicKey,
     };
-    pub use pkcs8::{
-        EncodePrivateKey as Pkcs8EncodePrivateKey,
-        DecodePrivateKey as Pkcs8DecodePrivateKey
-    };
-    pub use rsa::signature::{Keypair, DigestSigner, Signer, RandomizedSigner, Verifier, SignatureEncoding};
+    pub use zeroize::Zeroizing;
 }
 
 pub mod x509;
+
+pub mod sha1 {
+    use generic_array::GenericArray;
+    use sha1::digest::consts::U20;
+
+    pub use sha1::Sha1;
+
+    pub type Sha1Output = GenericArray<u8, U20>;
+}
 
 pub mod s256 {
     use generic_array::GenericArray;
@@ -70,8 +83,7 @@ pub mod hmac_s256 {
     }
 
     pub fn key_from_bytes(bytes: [u8; 64]) -> HmacSha256Key {
-        Key::<Hmac<Sha256>>::from(bytes)
-            .into()
+        Key::<Hmac<Sha256>>::from(bytes).into()
     }
 
     pub fn key_size() -> usize {
@@ -131,8 +143,7 @@ pub mod aes256 {
     }
 
     pub fn key_from_bytes(bytes: [u8; 32]) -> Aes256Key {
-        Key::<aes::Aes256>::from(bytes)
-            .into()
+        Key::<aes::Aes256>::from(bytes).into()
     }
 
     pub fn new_key() -> Aes256Key {
@@ -252,18 +263,18 @@ pub mod aes256kw {
 }
 
 pub mod rsa {
-    use rsa::pkcs1v15::{SigningKey, VerifyingKey, Signature};
+    use rsa::pkcs1v15::{Signature, SigningKey, VerifyingKey};
     use rsa::{RsaPrivateKey, RsaPublicKey};
 
     pub use rand;
-    pub use sha2::Sha256;
     pub use rsa::{pkcs1v15, Oaep};
+    pub use sha2::Sha256;
 
     pub const MIN_BITS: usize = 2048;
 
     pub type RS256PrivateKey = RsaPrivateKey;
     pub type RS256PublicKey = RsaPublicKey;
-    pub type RS256Signature =  Signature;
+    pub type RS256Signature = Signature;
     pub type RS256Digest = Sha256;
     pub type RS256VerifyingKey = VerifyingKey<Sha256>;
     pub type RS256SigningKey = SigningKey<Sha256>;
@@ -294,9 +305,9 @@ pub mod rsa {
 
 pub mod ecdsa_p256 {
     use ecdsa::hazmat::DigestPrimitive;
+    use ecdsa::{Signature, SigningKey, VerifyingKey};
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
     use p256::NistP256;
-    use ecdsa::{Signature, SigningKey, VerifyingKey};
 
     pub type EcdsaP256Digest = <NistP256 as DigestPrimitive>::Digest;
 
@@ -320,8 +331,8 @@ pub mod ecdsa_p256 {
 mod tests {
     #[test]
     fn sha256_basic() {
-        use crate::traits::*;
         use crate::s256::*;
+        use crate::traits::*;
 
         let mut hasher = Sha256::new();
         hasher.update(&[0, 1, 2, 3]);
@@ -457,8 +468,8 @@ mod tests {
 
     #[test]
     fn rsa_basic() {
-        use crate::traits::*;
         use crate::rsa::*;
+        use crate::traits::*;
 
         let pkey = new_key(MIN_BITS).unwrap();
 
@@ -489,8 +500,8 @@ mod tests {
 
     #[test]
     fn ecdsa_p256_basic() {
-        use crate::traits::*;
         use crate::ecdsa_p256::*;
+        use crate::traits::*;
 
         let priv_key = new_key();
 
