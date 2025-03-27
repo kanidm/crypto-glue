@@ -10,12 +10,11 @@ pub mod prelude {}
 mod test_ca;
 
 pub mod traits {
+    pub use elliptic_curve::sec1::FromEncodedPoint;
     pub use pkcs8::{
         DecodePrivateKey as Pkcs8DecodePrivateKey, EncodePrivateKey as Pkcs8EncodePrivateKey,
     };
-    pub use rsa::pkcs1::{
-        DecodeRsaPrivateKey as Pkcs1DecodeRsaPrivateKey
-    };
+    pub use rsa::pkcs1::DecodeRsaPrivateKey as Pkcs1DecodeRsaPrivateKey;
     pub use rsa::signature::{
         DigestSigner, Keypair, RandomizedSigner, SignatureEncoding, Signer, Verifier,
     };
@@ -267,6 +266,7 @@ pub mod rsa {
     use rsa::{RsaPrivateKey, RsaPublicKey};
 
     pub use rand;
+    pub use rsa::BigUint;
     pub use rsa::{pkcs1v15, Oaep};
     pub use sha2::Sha256;
 
@@ -306,8 +306,11 @@ pub mod rsa {
 pub mod ecdsa_p256 {
     use ecdsa::hazmat::DigestPrimitive;
     use ecdsa::{Signature, SigningKey, VerifyingKey};
+    use elliptic_curve::sec1::EncodedPoint;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
+    use generic_array::GenericArray;
     use p256::NistP256;
+    use sha2::digest::consts::U32;
 
     pub type EcdsaP256Digest = <NistP256 as DigestPrimitive>::Digest;
 
@@ -315,6 +318,9 @@ pub mod ecdsa_p256 {
     pub type EcdsaP256PrivateKeyFieldBytes = FieldBytes<NistP256>;
 
     pub type EcdsaP256PublicKey = PublicKey<NistP256>;
+
+    pub type EcdsaP256PublicCoordinate = GenericArray<u8, U32>;
+    pub type EcdsaP256PublicEncodedPoint = EncodedPoint<NistP256>;
 
     pub type EcdsaP256SigningKey = SigningKey<NistP256>;
     pub type EcdsaP256VerifyingKey = VerifyingKey<NistP256>;
