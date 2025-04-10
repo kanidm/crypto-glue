@@ -313,10 +313,14 @@ pub mod ecdh_p256 {
         SharedSecret,
         EphemeralSecret
     };
+    use elliptic_curve::PublicKey;
     use p256::NistP256;
+    use sha2::Sha256;
 
     pub type EcdhP256EphemeralSecret = EphemeralSecret<NistP256>;
     pub type EcdhP256SharedSecret = SharedSecret<NistP256>;
+    pub type EcdhP256Digest = Sha256;
+    pub type EcdhP256PublicKey = PublicKey<NistP256>;
 
     pub fn new_secret() -> EcdhP256EphemeralSecret {
         let mut rng = rand::thread_rng();
