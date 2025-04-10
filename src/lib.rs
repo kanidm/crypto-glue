@@ -10,6 +10,7 @@ pub mod prelude {}
 mod test_ca;
 
 pub mod traits {
+    pub use crypto_common::KeyInit;
     pub use elliptic_curve::sec1::FromEncodedPoint;
     pub use pkcs8::{
         DecodePrivateKey as Pkcs8DecodePrivateKey, EncodePrivateKey as Pkcs8EncodePrivateKey,
@@ -17,12 +18,16 @@ pub mod traits {
     pub use rsa::pkcs1::DecodeRsaPrivateKey as Pkcs1DecodeRsaPrivateKey;
     pub use rsa::signature::{
         DigestSigner, Keypair, RandomizedSigner, SignatureEncoding, Signer, Verifier,
+        DigestVerifier,
     };
+    pub use rsa::traits::PublicKeyParts;
     pub use sha2::Digest;
     pub use spki::{
         DecodePublicKey as SpkiDecodePublicKey, EncodePublicKey as SpkiEncodePublicKey,
     };
     pub use zeroize::Zeroizing;
+    pub use hmac::Mac;
+    pub use aes_gcm::aead::AeadInPlace;
 }
 
 pub mod x509;
@@ -50,11 +55,11 @@ pub mod hmac_s256 {
     use crypto_common::Output;
 
     use hmac::Hmac;
+    use hmac::Mac;
     use sha2::digest::CtOutput;
     use sha2::Sha256;
     use zeroize::Zeroizing;
 
-    pub use hmac::Mac;
 
     pub type HmacSha256 = Hmac<Sha256>;
 
@@ -303,10 +308,27 @@ pub mod rsa {
     }
 }
 
+pub mod ecdh_p256 {
+    use elliptic_curve::ecdh::{
+        SharedSecret,
+        EphemeralSecret
+    };
+    use p256::NistP256;
+
+    pub type EcdhP256EphemeralSecret = EphemeralSecret<NistP256>;
+    pub type EcdhP256SharedSecret = SharedSecret<NistP256>;
+
+    pub fn new_secret() -> EcdhP256EphemeralSecret {
+        let mut rng = rand::thread_rng();
+        EcdhP256EphemeralSecret::random(&mut rng)
+    }
+}
+
 pub mod ecdsa_p256 {
     use ecdsa::hazmat::DigestPrimitive;
-    use ecdsa::{Signature, SigningKey, VerifyingKey};
+    use ecdsa::{Signature, SigningKey, VerifyingKey, SignatureBytes};
     use elliptic_curve::sec1::EncodedPoint;
+    use elliptic_curve::point::AffinePoint;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
     use generic_array::GenericArray;
     use p256::NistP256;
@@ -315,7 +337,9 @@ pub mod ecdsa_p256 {
     pub type EcdsaP256Digest = <NistP256 as DigestPrimitive>::Digest;
 
     pub type EcdsaP256PrivateKey = SecretKey<NistP256>;
-    pub type EcdsaP256PrivateKeyFieldBytes = FieldBytes<NistP256>;
+
+    pub type EcdsaP256FieldBytes = FieldBytes<NistP256>;
+    pub type EcdsaP256AffinePoint = AffinePoint<NistP256>;
 
     pub type EcdsaP256PublicKey = PublicKey<NistP256>;
 
@@ -326,6 +350,7 @@ pub mod ecdsa_p256 {
     pub type EcdsaP256VerifyingKey = VerifyingKey<NistP256>;
 
     pub type EcdsaP256Signature = Signature<NistP256>;
+    pub type EcdsaP256SignatureBytes = SignatureBytes<NistP256>;
 
     pub fn new_key() -> EcdsaP256PrivateKey {
         let mut rng = rand::thread_rng();
@@ -350,6 +375,7 @@ mod tests {
     #[test]
     fn hmac_256_basic() {
         use crate::hmac_s256::*;
+        use crate::traits::Mac;
 
         let hmac_key = new_key();
 
@@ -530,6 +556,23 @@ mod tests {
 
         let sig: EcdsaP256Signature = signer.try_sign_digest(digest).unwrap();
         assert!(verifier.verify(&data, &sig).is_ok());
+    }
+
+    #[test]
+    fn ecdh_p256_basic() {
+        use crate::ecdh_p256::*;
+        use crate::traits::*;
+
+        let secret_a = new_secret();
+        let secret_b = new_secret();
+
+        let public_a = secret_a.public_key();
+        let public_b = secret_b.public_key();
+
+        let derived_secret_a = secret_a.diffie_hellman(&public_b);
+        let derived_secret_b = secret_b.diffie_hellman(&public_a);
+
+        assert_eq!(derived_secret_a.raw_secret_bytes(), derived_secret_b.raw_secret_bytes());
     }
 
     #[test]
