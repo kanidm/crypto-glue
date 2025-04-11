@@ -142,6 +142,10 @@ pub mod aes256 {
         aes::Aes256::key_size()
     }
 
+    pub fn key_from_slice(bytes: &[u8]) -> Option<Aes256Key> {
+        Key::<aes::Aes256>::from_exact_iter(bytes.iter().copied()).map(|key| key.into())
+    }
+
     pub fn key_from_vec(bytes: Vec<u8>) -> Option<Aes256Key> {
         Key::<aes::Aes256>::from_exact_iter(bytes.into_iter()).map(|key| key.into())
     }
@@ -368,6 +372,10 @@ pub mod ecdsa_p256 {
         let mut rng = rand::thread_rng();
         EcdsaP256PrivateKey::random(&mut rng)
     }
+}
+
+pub mod nist_sp800_108_kdf_hmac_sha256 {
+    
 }
 
 #[cfg(test)]

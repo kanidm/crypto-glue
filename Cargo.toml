@@ -15,9 +15,6 @@ alloc = [ "argon2/alloc" ]
 [profile.dev.package.num-bigint-dig]
 opt-level = 3
 
-[patch.crates-io]
-concat-kdf = { git = "https://github.com/RustCrypto/KDFs.git", rev = "b1d7fe67b3053deef498563adcf415ec631d1cd8" }
-
 [dependencies]
 aes = "0.8.1"
 aes-gcm = "0.10.3"
@@ -56,7 +53,8 @@ zeroize = { version = "1.6.0", features = ["serde"] }
 rustls = { version = "0.23", default-features = false, features = ["custom-provider", "std"] }
 uuid = { version = "1", features = ["v4"] }
 
-concat-kdf = "0.2.0-pre"
+# concat-kdf = { git = "https://github.com/RustCrypto/KDFs.git", rev = "b1d7fe67b3053deef498563adcf415ec631d1cd8" }
+# concat-kdf = "0.2.0-pre"
 
 [dev-dependencies]
 rustls-rustcrypto = "0.0.2-alpha"
