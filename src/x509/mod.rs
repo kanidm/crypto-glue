@@ -1,5 +1,6 @@
 pub use der::asn1::BitString;
 pub use x509_cert::builder::{Builder, CertificateBuilder, Profile};
+pub use x509_cert::certificate::Certificate;
 pub use x509_cert::name::Name;
 pub use x509_cert::serial_number::SerialNumber;
 pub use x509_cert::spki::{SignatureBitStringEncoding, SubjectPublicKeyInfoOwned};

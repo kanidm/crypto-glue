@@ -10,14 +10,20 @@ pub mod prelude {}
 mod test_ca;
 
 pub mod traits {
+    pub use aes_gcm::aead::AeadInPlace;
+    pub use crypto_common::KeyInit;
+    pub use crypto_common::OutputSizeUser;
     pub use elliptic_curve::sec1::FromEncodedPoint;
+    pub use hmac::Mac;
     pub use pkcs8::{
         DecodePrivateKey as Pkcs8DecodePrivateKey, EncodePrivateKey as Pkcs8EncodePrivateKey,
     };
     pub use rsa::pkcs1::DecodeRsaPrivateKey as Pkcs1DecodeRsaPrivateKey;
     pub use rsa::signature::{
-        DigestSigner, Keypair, RandomizedSigner, SignatureEncoding, Signer, Verifier,
+        DigestSigner, DigestVerifier, Keypair, RandomizedSigner, SignatureEncoding, Signer,
+        Verifier,
     };
+    pub use rsa::traits::PublicKeyParts;
     pub use sha2::Digest;
     pub use spki::{
         DecodePublicKey as SpkiDecodePublicKey, EncodePublicKey as SpkiEncodePublicKey,
@@ -50,11 +56,10 @@ pub mod hmac_s256 {
     use crypto_common::Output;
 
     use hmac::Hmac;
+    use hmac::Mac;
     use sha2::digest::CtOutput;
     use sha2::Sha256;
     use zeroize::Zeroizing;
-
-    pub use hmac::Mac;
 
     pub type HmacSha256 = Hmac<Sha256>;
 
@@ -135,6 +140,10 @@ pub mod aes256 {
     pub fn key_size() -> usize {
         use crypto_common::KeySizeUser;
         aes::Aes256::key_size()
+    }
+
+    pub fn key_from_slice(bytes: &[u8]) -> Option<Aes256Key> {
+        Key::<aes::Aes256>::from_exact_iter(bytes.iter().copied()).map(|key| key.into())
     }
 
     pub fn key_from_vec(bytes: Vec<u8>) -> Option<Aes256Key> {
@@ -303,9 +312,35 @@ pub mod rsa {
     }
 }
 
+pub mod ecdh_p256 {
+    use elliptic_curve::ecdh::{EphemeralSecret, SharedSecret};
+    use elliptic_curve::sec1::EncodedPoint;
+    use elliptic_curve::{FieldBytes, PublicKey};
+    use hkdf::Hkdf;
+    use hmac::SimpleHmac;
+    use p256::NistP256;
+    use sha2::Sha256;
+
+    pub type EcdhP256EphemeralSecret = EphemeralSecret<NistP256>;
+    pub type EcdhP256SharedSecret = SharedSecret<NistP256>;
+    pub type EcdhP256PublicKey = PublicKey<NistP256>;
+    pub type EcdhP256PublicEncodedPoint = EncodedPoint<NistP256>;
+    pub type EcdhP256FieldBytes = FieldBytes<NistP256>;
+
+    pub type EcdhP256Hkdf = Hkdf<Sha256, SimpleHmac<Sha256>>;
+
+    pub type EcdhP256Digest = Sha256;
+
+    pub fn new_secret() -> EcdhP256EphemeralSecret {
+        let mut rng = rand::thread_rng();
+        EcdhP256EphemeralSecret::random(&mut rng)
+    }
+}
+
 pub mod ecdsa_p256 {
     use ecdsa::hazmat::DigestPrimitive;
-    use ecdsa::{Signature, SigningKey, VerifyingKey};
+    use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
+    use elliptic_curve::point::AffinePoint;
     use elliptic_curve::sec1::EncodedPoint;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
     use generic_array::GenericArray;
@@ -315,7 +350,9 @@ pub mod ecdsa_p256 {
     pub type EcdsaP256Digest = <NistP256 as DigestPrimitive>::Digest;
 
     pub type EcdsaP256PrivateKey = SecretKey<NistP256>;
-    pub type EcdsaP256PrivateKeyFieldBytes = FieldBytes<NistP256>;
+
+    pub type EcdsaP256FieldBytes = FieldBytes<NistP256>;
+    pub type EcdsaP256AffinePoint = AffinePoint<NistP256>;
 
     pub type EcdsaP256PublicKey = PublicKey<NistP256>;
 
@@ -326,10 +363,47 @@ pub mod ecdsa_p256 {
     pub type EcdsaP256VerifyingKey = VerifyingKey<NistP256>;
 
     pub type EcdsaP256Signature = Signature<NistP256>;
+    pub type EcdsaP256SignatureBytes = SignatureBytes<NistP256>;
 
     pub fn new_key() -> EcdsaP256PrivateKey {
         let mut rng = rand::thread_rng();
         EcdsaP256PrivateKey::random(&mut rng)
+    }
+}
+
+pub mod nist_sp800_108_kdf_hmac_sha256 {
+    use crate::traits::Zeroizing;
+    use digest_pre::{consts::*, crypto_common::KeySizeUser};
+    use hmac_pre::Hmac;
+    use kbkdf::{Counter, Kbkdf, Params};
+    use sha2_pre::Sha256;
+
+    struct MockOutput;
+
+    impl KeySizeUser for MockOutput {
+        type KeySize = U32;
+    }
+
+    type HmacSha256 = Hmac<Sha256>;
+
+    pub fn derive_key_aes256(
+        key_in: &[u8],
+        label: &[u8],
+        context: &[u8],
+    ) -> Option<Zeroizing<Vec<u8>>> {
+        let counter = Counter::<HmacSha256, MockOutput>::default();
+        let params = Params::builder(key_in)
+            .with_label(label)
+            .with_context(context)
+            .use_l(true)
+            .use_separator(true)
+            .use_counter(true)
+            .build();
+        let key = counter.derive(params).ok()?;
+
+        let mut output = Zeroizing::new(vec![0; MockOutput::key_size()]);
+        output.copy_from_slice(&key.as_slice());
+        Some(output)
     }
 }
 
@@ -350,6 +424,7 @@ mod tests {
     #[test]
     fn hmac_256_basic() {
         use crate::hmac_s256::*;
+        use crate::traits::Mac;
 
         let hmac_key = new_key();
 
@@ -530,6 +605,26 @@ mod tests {
 
         let sig: EcdsaP256Signature = signer.try_sign_digest(digest).unwrap();
         assert!(verifier.verify(&data, &sig).is_ok());
+    }
+
+    #[test]
+    fn ecdh_p256_basic() {
+        use crate::ecdh_p256::*;
+        use crate::traits::*;
+
+        let secret_a = new_secret();
+        let secret_b = new_secret();
+
+        let public_a = secret_a.public_key();
+        let public_b = secret_b.public_key();
+
+        let derived_secret_a = secret_a.diffie_hellman(&public_b);
+        let derived_secret_b = secret_b.diffie_hellman(&public_a);
+
+        assert_eq!(
+            derived_secret_a.raw_secret_bytes(),
+            derived_secret_b.raw_secret_bytes()
+        );
     }
 
     #[test]
