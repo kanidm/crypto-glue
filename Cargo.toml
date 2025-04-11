@@ -56,6 +56,11 @@ uuid = { version = "1", features = ["v4"] }
 # concat-kdf = { git = "https://github.com/RustCrypto/KDFs.git", rev = "b1d7fe67b3053deef498563adcf415ec631d1cd8" }
 # concat-kdf = "0.2.0-pre"
 
+kbkdf = "0.0.1"
+hmac-pre = { package = "hmac", version = "0.13.0-pre.4", default-features = false }
+sha2-pre = { package = "sha2", version = "0.11.0-pre.2", default-features = false }
+digest-pre = { package = "digest", version = "0.11.0-pre.9", default-features = false, features = ["mac"] }
+
 [dev-dependencies]
 rustls-rustcrypto = "0.0.2-alpha"
 tracing-subscriber = "^0.3.17"
