@@ -1,7 +1,7 @@
 [package]
 name = "crypto-glue"
 description = "A facade over the RustCrypto ecosystem"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 license = "MPL-2.0"
 homepage = "https://github.com/kanidm/crypto-glue/"
@@ -53,7 +53,15 @@ zeroize = { version = "1.6.0", features = ["serde"] }
 rustls = { version = "0.23", default-features = false, features = ["custom-provider", "std"] }
 uuid = { version = "1", features = ["v4"] }
 
-# [dev-dependencies]
+# concat-kdf = { git = "https://github.com/RustCrypto/KDFs.git", rev = "b1d7fe67b3053deef498563adcf415ec631d1cd8" }
+# concat-kdf = "0.2.0-pre"
+
+kbkdf = "0.0.1"
+hmac-pre = { package = "hmac", version = "0.13.0-pre.4", default-features = false }
+sha2-pre = { package = "sha2", version = "0.11.0-pre.2", default-features = false }
+digest-pre = { package = "digest", version = "0.11.0-pre.9", default-features = false, features = ["mac"] }
+
+[dev-dependencies]
 rustls-rustcrypto = "0.0.2-alpha"
 tracing-subscriber = "^0.3.17"
 
