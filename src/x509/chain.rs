@@ -45,7 +45,7 @@ impl X509Store {
         }
     }
 
-    pub fn validate(
+    pub fn verify(
         &self,
         leaf: &Certificate,
         intermediates: &[&Certificate],
@@ -81,7 +81,7 @@ impl X509Store {
 
             self.validate_pair(
                 certificate_to_validate,
-                *intermediate,
+                intermediate,
                 current_time_unix,
                 path_length,
             )?;
@@ -110,6 +110,9 @@ impl X509Store {
             current_time_unix,
             path_length,
         )?;
+
+        // At this point we have established the chain back to the CA is valid along
+        // the path of intermediates.
 
         // That's it!
         Ok(())
@@ -236,71 +239,25 @@ impl X509Store {
         }
 
         // Now validate the signature of the certificate_to_validate
+        if &certificate_to_validate.signature_algorithm != &authority.tbs_certificate.signature {
+            return Err(X509VerificationError::SignatureAlgorithmMismatch);
+        }
 
         let cert_to_validate_data = certificate_to_validate
             .tbs_certificate
             .to_der()
             .map_err(|_err| X509VerificationError::CertificateSerialisation)?;
-        let cert_to_validate_signature = &certificate_to_validate.signature;
-        let cert_to_validate_signature_algorithm = &certificate_to_validate.signature_algorithm;
 
-        if cert_to_validate_signature_algorithm != &authority.tbs_certificate.signature {
-            return Err(X509VerificationError::SignatureAlgorithmMismatch);
-        }
+        let cert_to_validate_signature = certificate_to_validate
+            .signature
+            .as_bytes()
+            .ok_or(X509VerificationError::DerSignatureInvalid)?;
 
-        let authority_subject_public_key_info = authority
-            .tbs_certificate
-            .subject_public_key_info
-            .owned_to_ref();
-
-        match cert_to_validate_signature_algorithm.oid {
-            oiddb::rfc5912::ECDSA_WITH_SHA_256 => {
-                let signature = cert_to_validate_signature
-                    .as_bytes()
-                    .and_then(|bytes| EcdsaP256DerSignature::try_from(bytes).ok())
-                    .ok_or(X509VerificationError::DerSignatureInvalid)?;
-
-                let verifier = EcdsaP256PublicKey::try_from(authority_subject_public_key_info)
-                    .map(EcdsaP256VerifyingKey::from)
-                    .map_err(|_err| X509VerificationError::VerifyingKeyFromSpki)?;
-
-                verifier
-                    .verify(&cert_to_validate_data, &signature)
-                    .map_err(|_err| X509VerificationError::SignatureVerificationFailed)?;
-            }
-            oiddb::rfc5912::ECDSA_WITH_SHA_384 => {
-                let signature = cert_to_validate_signature
-                    .as_bytes()
-                    .and_then(|bytes| EcdsaP384DerSignature::try_from(bytes).ok())
-                    .ok_or(X509VerificationError::DerSignatureInvalid)?;
-
-                let verifier = EcdsaP384PublicKey::try_from(authority_subject_public_key_info)
-                    .map(EcdsaP384VerifyingKey::from)
-                    .map_err(|_err| X509VerificationError::VerifyingKeyFromSpki)?;
-
-                verifier
-                    .verify(&cert_to_validate_data, &signature)
-                    .map_err(|_err| X509VerificationError::SignatureVerificationFailed)?;
-            }
-            oiddb::rfc5912::SHA_256_WITH_RSA_ENCRYPTION => {
-                let signature = cert_to_validate_signature
-                    .as_bytes()
-                    .and_then(|bytes| RS256Signature::try_from(bytes).ok())
-                    .ok_or(X509VerificationError::DerSignatureInvalid)?;
-
-                let verifier = RS256PublicKey::try_from(authority_subject_public_key_info)
-                    .map(RS256VerifyingKey::new)
-                    .map_err(|_err| X509VerificationError::VerifyingKeyFromSpki)?;
-
-                verifier
-                    .verify(&cert_to_validate_data, &signature)
-                    .map_err(|_err| X509VerificationError::SignatureVerificationFailed)?;
-            }
-            algo_oid => {
-                error!(?algo_oid);
-                return Err(X509VerificationError::SignatureAlgorithmNotImplemented);
-            }
-        }
+        verify_signature(
+            &cert_to_validate_data,
+            cert_to_validate_signature,
+            authority,
+        )?;
 
         Ok(())
     }
@@ -311,20 +268,82 @@ impl X509Store {
     ) -> Result<&Certificate, X509VerificationError> {
         self.store
             .iter()
-            .filter(|ca_cert| {
+            .find(|ca_cert| {
                 ca_cert.tbs_certificate.subject == certificate_to_validate.tbs_certificate.issuer
             })
-            .next()
-            .ok_or_else(|| X509VerificationError::NoMatchingIssuer)
+            .ok_or(X509VerificationError::NoMatchingIssuer)
     }
+}
+
+pub fn verify_signature(
+    data: &[u8],
+    signature: &[u8],
+    certificate: &Certificate,
+) -> Result<(), X509VerificationError> {
+    let subject_public_key_info = certificate
+        .tbs_certificate
+        .subject_public_key_info
+        .owned_to_ref();
+
+    match certificate.tbs_certificate.signature.oid {
+        oiddb::rfc5912::ECDSA_WITH_SHA_256 => {
+            let signature = EcdsaP256DerSignature::try_from(signature)
+                .map_err(|_err| X509VerificationError::DerSignatureInvalid)?;
+
+            let verifier = EcdsaP256PublicKey::try_from(subject_public_key_info)
+                .map(EcdsaP256VerifyingKey::from)
+                .map_err(|_err| X509VerificationError::VerifyingKeyFromSpki)?;
+
+            verifier
+                .verify(data, &signature)
+                .map_err(|_err| X509VerificationError::SignatureVerificationFailed)?;
+        }
+        oiddb::rfc5912::ECDSA_WITH_SHA_384 => {
+            let signature = EcdsaP384DerSignature::try_from(signature)
+                .map_err(|_err| X509VerificationError::DerSignatureInvalid)?;
+
+            let verifier = EcdsaP384PublicKey::try_from(subject_public_key_info)
+                .map(EcdsaP384VerifyingKey::from)
+                .map_err(|_err| X509VerificationError::VerifyingKeyFromSpki)?;
+
+            verifier
+                .verify(data, &signature)
+                .map_err(|_err| X509VerificationError::SignatureVerificationFailed)?;
+        }
+        oiddb::rfc5912::SHA_256_WITH_RSA_ENCRYPTION => {
+            let signature = RS256Signature::try_from(signature)
+                .map_err(|_err| X509VerificationError::DerSignatureInvalid)?;
+
+            let verifier = RS256PublicKey::try_from(subject_public_key_info)
+                .map(RS256VerifyingKey::new)
+                .map_err(|_err| X509VerificationError::VerifyingKeyFromSpki)?;
+
+            verifier
+                .verify(data, &signature)
+                .map_err(|_err| X509VerificationError::SignatureVerificationFailed)?;
+        }
+        algo_oid => {
+            error!(?algo_oid);
+            return Err(X509VerificationError::SignatureAlgorithmNotImplemented);
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::X509Store;
+    use crate::ecdsa_p384::{
+        EcdsaP384PublicKey,
+        // EcdsaP384DerSignature,
+        EcdsaP384Signature,
+        EcdsaP384VerifyingKey,
+    };
     use crate::test_ca::*;
-    use crate::traits::DecodePem;
+    use crate::traits::{DecodePem, Signer, Verifier};
     use crate::x509::{Certificate, Name, Time};
+    use der::referenced::OwnedToRef;
     use std::str::FromStr;
     use std::time::Duration;
     use std::time::SystemTime;
@@ -343,7 +362,7 @@ mod tests {
             build_test_ca_int(not_before, not_after, &root_signing_key, &root_ca_cert);
 
         let subject = Name::from_str("CN=localhost").unwrap();
-        let (server_key, server_csr) = build_test_csr(not_before, not_after, subject);
+        let (server_key, server_csr) = build_test_csr(subject);
 
         let server_cert = test_ca_sign_server_csr(
             not_before,
@@ -352,14 +371,34 @@ mod tests {
             &int_signing_key,
             &int_ca_cert,
         );
-        // Certs setup, validate now.
 
+        // Also sign some data to validate.
+        let test_data = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+        let test_data_signature: EcdsaP384Signature = server_key
+            .try_sign(&test_data)
+            // .map(|sig: EcdsaP384Signature | sig.to_der())
+            .expect("Unable to sign test data");
+
+        // Certs setup, validate now.
         let ca_store = X509Store::new(&[&root_ca_cert]);
 
         let leaf = &server_cert;
         let chain = [&int_ca_cert];
 
-        assert_eq!(ca_store.validate(leaf, &chain, now), Ok(()));
+        assert_eq!(ca_store.verify(leaf, &chain, now), Ok(()));
+
+        // Now validate our data signature.
+        let subject_public_key_info = server_cert
+            .tbs_certificate
+            .subject_public_key_info
+            .owned_to_ref();
+
+        let verifier = EcdsaP384PublicKey::try_from(subject_public_key_info)
+            .map(EcdsaP384VerifyingKey::from)
+            .unwrap();
+
+        verifier.verify(&test_data, &test_data_signature).unwrap();
     }
 
     #[test]
@@ -375,7 +414,7 @@ mod tests {
         let leaf = &mds_cert;
         let chain = [];
 
-        assert_eq!(ca_store.validate(leaf, &chain, now), Ok(()));
+        assert_eq!(ca_store.verify(leaf, &chain, now), Ok(()));
     }
 
     #[test]
@@ -391,7 +430,7 @@ mod tests {
         let leaf = &yubico_device_attest;
         let chain = [];
 
-        assert_eq!(ca_store.validate(leaf, &chain, now), Ok(()));
+        assert_eq!(ca_store.verify(leaf, &chain, now), Ok(()));
     }
 
     const YUBICO_U2F_ROOT: &str = r#"-----BEGIN CERTIFICATE-----

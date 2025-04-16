@@ -12,9 +12,11 @@ pub mod display;
 
 pub fn uuid_to_serial(serial_uuid: uuid::Uuid) -> SerialNumber {
     let mut serial_bytes: [u8; 17] = [0; 17];
+    // The first byte must be a value else if the leading byte is a null then
+    // der is unhappy.
     serial_bytes[0] = 0x01;
     let update_bytes = &mut serial_bytes[1..];
     update_bytes.copy_from_slice(serial_uuid.as_bytes());
 
-    SerialNumber::new(&serial_bytes).unwrap()
+    SerialNumber::new(&serial_bytes).expect("Failed to create serial number from uuid")
 }
