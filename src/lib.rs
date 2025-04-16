@@ -1,3 +1,22 @@
+#![deny(warnings)]
+#![allow(dead_code)]
+#![warn(unused_extern_crates)]
+// Enable some groups of clippy lints.
+#![deny(clippy::suspicious)]
+#![deny(clippy::perf)]
+// Specific lints to enforce.
+#![deny(clippy::todo)]
+#![deny(clippy::unimplemented)]
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::expect_used)]
+#![deny(clippy::panic)]
+#![deny(clippy::await_holding_lock)]
+#![deny(clippy::needless_pass_by_value)]
+#![deny(clippy::trivially_copy_pass_by_ref)]
+#![deny(clippy::disallowed_types)]
+#![deny(clippy::manual_let_else)]
+#![allow(clippy::unreachable)]
+
 pub use argon2;
 pub use hex;
 pub use rand;
@@ -13,6 +32,7 @@ pub mod traits {
     pub use aes_gcm::aead::AeadInPlace;
     pub use crypto_common::KeyInit;
     pub use crypto_common::OutputSizeUser;
+    pub use der::DecodePem;
     pub use elliptic_curve::sec1::FromEncodedPoint;
     pub use hmac::Mac;
     pub use pkcs8::{
@@ -344,7 +364,7 @@ pub mod ecdsa_p256 {
     use elliptic_curve::sec1::EncodedPoint;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
     use generic_array::GenericArray;
-    use p256::NistP256;
+    use p256::{ecdsa::DerSignature, NistP256};
     use sha2::digest::consts::U32;
 
     pub type EcdsaP256Digest = <NistP256 as DigestPrimitive>::Digest;
@@ -363,11 +383,47 @@ pub mod ecdsa_p256 {
     pub type EcdsaP256VerifyingKey = VerifyingKey<NistP256>;
 
     pub type EcdsaP256Signature = Signature<NistP256>;
+    pub type EcdsaP256DerSignature = DerSignature;
     pub type EcdsaP256SignatureBytes = SignatureBytes<NistP256>;
 
     pub fn new_key() -> EcdsaP256PrivateKey {
         let mut rng = rand::thread_rng();
         EcdsaP256PrivateKey::random(&mut rng)
+    }
+}
+
+pub mod ecdsa_p384 {
+    use ecdsa::hazmat::DigestPrimitive;
+    use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
+    use elliptic_curve::point::AffinePoint;
+    use elliptic_curve::sec1::EncodedPoint;
+    use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
+    // use generic_array::GenericArray;
+    use p384::{ecdsa::DerSignature, NistP384};
+    // use sha2::digest::consts::U32;
+
+    pub type EcdsaP384Digest = <NistP384 as DigestPrimitive>::Digest;
+
+    pub type EcdsaP384PrivateKey = SecretKey<NistP384>;
+
+    pub type EcdsaP384FieldBytes = FieldBytes<NistP384>;
+    pub type EcdsaP384AffinePoint = AffinePoint<NistP384>;
+
+    pub type EcdsaP384PublicKey = PublicKey<NistP384>;
+
+    // pub type EcdsaP384PublicCoordinate = GenericArray<u8, U32>;
+    pub type EcdsaP384PublicEncodedPoint = EncodedPoint<NistP384>;
+
+    pub type EcdsaP384SigningKey = SigningKey<NistP384>;
+    pub type EcdsaP384VerifyingKey = VerifyingKey<NistP384>;
+
+    pub type EcdsaP384Signature = Signature<NistP384>;
+    pub type EcdsaP384DerSignature = DerSignature;
+    pub type EcdsaP384SignatureBytes = SignatureBytes<NistP384>;
+
+    pub fn new_key() -> EcdsaP384PrivateKey {
+        let mut rng = rand::thread_rng();
+        EcdsaP384PrivateKey::random(&mut rng)
     }
 }
 
