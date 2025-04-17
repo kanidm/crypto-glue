@@ -239,7 +239,7 @@ impl X509Store {
         }
 
         // Now validate the signature of the certificate_to_validate
-        if &certificate_to_validate.signature_algorithm != &authority.tbs_certificate.signature {
+        if certificate_to_validate.signature_algorithm != authority.tbs_certificate.signature {
             return Err(X509VerificationError::SignatureAlgorithmMismatch);
         }
 

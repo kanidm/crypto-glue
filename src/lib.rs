@@ -471,7 +471,7 @@ mod tests {
         use crate::traits::*;
 
         let mut hasher = Sha256::new();
-        hasher.update(&[0, 1, 2, 3]);
+        hasher.update([0, 1, 2, 3]);
         let out: Sha256Output = hasher.finalize();
 
         eprintln!("{:?}", out.as_slice());
@@ -657,7 +657,7 @@ mod tests {
         // Or you can sign a digest directly, must match the type from C::Digest.
 
         let mut digest = EcdsaP256Digest::new();
-        digest.update(&data);
+        digest.update(data);
 
         let sig: EcdsaP256Signature = signer.try_sign_digest(digest).unwrap();
         assert!(verifier.verify(&data, &sig).is_ok());
