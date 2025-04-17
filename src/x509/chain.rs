@@ -362,7 +362,7 @@ mod tests {
             build_test_ca_int(not_before, not_after, &root_signing_key, &root_ca_cert);
 
         let subject = Name::from_str("CN=localhost").unwrap();
-        let (server_key, server_csr) = build_test_csr(subject);
+        let (server_key, server_csr) = build_test_csr(&subject);
 
         let server_cert = test_ca_sign_server_csr(
             not_before,

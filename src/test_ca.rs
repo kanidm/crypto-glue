@@ -371,7 +371,7 @@ pub(crate) fn build_test_ca_int(
     (int_signing_key, int_cert)
 }
 
-pub(crate) fn build_test_csr(subject: Name) -> (SigningKey, CertReq) {
+pub(crate) fn build_test_csr(subject: &Name) -> (SigningKey, CertReq) {
     let mut rng = rand::thread_rng();
 
     let client_signing_key = SigningKey::random(&mut rng);
@@ -825,7 +825,7 @@ fn test_ca_build_process() {
 
     let subject = Name::from_str("CN=multi pass").unwrap();
 
-    let (_client_key, client_csr) = build_test_csr(subject);
+    let (_client_key, client_csr) = build_test_csr(&subject);
 
     let _client_cert = test_ca_sign_client_csr(
         not_before,
@@ -839,7 +839,7 @@ fn test_ca_build_process() {
 
     let subject = Name::from_str("CN=localhost").unwrap();
 
-    let (_server_key, server_csr) = build_test_csr(subject);
+    let (_server_key, server_csr) = build_test_csr(&subject);
 
     let _server_cert = test_ca_sign_server_csr(
         not_before,

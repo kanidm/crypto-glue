@@ -727,7 +727,7 @@ mod tests {
 
         let subject = Name::from_str("CN=localhost").unwrap();
 
-        let (server_key, server_csr) = build_test_csr(subject);
+        let (server_key, server_csr) = build_test_csr(&subject);
 
         let server_cert = test_ca_sign_server_csr(
             not_before,
