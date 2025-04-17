@@ -253,7 +253,7 @@ impl X509Store {
             .as_bytes()
             .ok_or(X509VerificationError::DerSignatureInvalid)?;
 
-        verify_signature(
+        verify_der_signature(
             &cert_to_validate_data,
             cert_to_validate_signature,
             authority,
@@ -275,7 +275,10 @@ impl X509Store {
     }
 }
 
-pub fn verify_signature(
+// We can't use the generic x509_verify_signature here because the format
+// of these signatures within an x509 cert is DER and different than the
+// "generic" signatures you may get on something like a JWT
+fn verify_der_signature(
     data: &[u8],
     signature: &[u8],
     certificate: &Certificate,
