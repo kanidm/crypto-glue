@@ -1,16 +1,30 @@
+pub use self::chain::{X509Store, X509VerificationError};
+pub use self::display::X509Display;
+pub use const_oid::db as oiddb;
 pub use der::asn1::BitString;
 pub use x509_cert::builder::{Builder, CertificateBuilder, Profile};
 pub use x509_cert::certificate::Certificate;
-pub use x509_cert::ext::pkix::{BasicConstraints, KeyUsage, KeyUsages};
+pub use x509_cert::ext::pkix::{
+    AuthorityKeyIdentifier, BasicConstraints, ExtendedKeyUsage, KeyUsage, KeyUsages,
+    SubjectKeyIdentifier,
+};
 pub use x509_cert::name::Name;
 pub use x509_cert::serial_number::SerialNumber;
-pub use x509_cert::spki::{SignatureBitStringEncoding, SubjectPublicKeyInfoOwned};
+pub use x509_cert::spki::{
+    AlgorithmIdentifier, SignatureBitStringEncoding, SubjectPublicKeyInfoOwned,
+};
 pub use x509_cert::time::{Time, Validity};
 
-pub use self::chain::{X509Store, X509VerificationError};
+use crate::{
+    ecdsa_p256::{EcdsaP256PublicKey, EcdsaP256Signature, EcdsaP256VerifyingKey},
+    ecdsa_p384::{EcdsaP384PublicKey, EcdsaP384Signature, EcdsaP384VerifyingKey},
+    rsa::{RS256PublicKey, RS256Signature, RS256VerifyingKey},
+    traits::{OwnedToRef, Verifier},
+};
+use tracing::error;
 
 mod chain;
-pub mod display;
+mod display;
 
 pub fn uuid_to_serial(serial_uuid: uuid::Uuid) -> SerialNumber {
     let mut serial_bytes: [u8; 17] = [0; 17];
@@ -20,6 +34,7 @@ pub fn uuid_to_serial(serial_uuid: uuid::Uuid) -> SerialNumber {
     let update_bytes = &mut serial_bytes[1..];
     update_bytes.copy_from_slice(serial_uuid.as_bytes());
 
+    #[allow(clippy::expect_used)]
     SerialNumber::new(&serial_bytes).expect("Failed to create serial number from uuid")
 }
 
@@ -78,4 +93,3 @@ pub fn x509_verify_signature(
 
     Ok(())
 }
-
