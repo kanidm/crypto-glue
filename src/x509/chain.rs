@@ -1,4 +1,4 @@
-use crate::x509::{BasicConstraints, Certificate, KeyUsage};
+use crate::x509::{AlgorithmIdentifier, BasicConstraints, Certificate, KeyUsage};
 use crate::{
     ecdsa_p256::{EcdsaP256DerSignature, EcdsaP256PublicKey, EcdsaP256VerifyingKey},
     ecdsa_p384::{EcdsaP384DerSignature, EcdsaP384PublicKey, EcdsaP384VerifyingKey},
@@ -9,7 +9,7 @@ use const_oid::db as oiddb;
 use der::referenced::OwnedToRef;
 use der::Encode;
 use std::time::{Duration, SystemTime};
-use tracing::error;
+use tracing::{debug, error, warn};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum X509VerificationError {
@@ -39,7 +39,7 @@ pub struct X509Store {
 }
 
 impl X509Store {
-    pub fn new(ca_roots: &[&Certificate]) -> Self {
+    pub fn new(ca_roots: &[Certificate]) -> Self {
         Self {
             store: ca_roots.iter().map(|c| (*c).clone()).collect(),
         }
@@ -48,7 +48,7 @@ impl X509Store {
     pub fn verify(
         &self,
         leaf: &Certificate,
-        intermediates: &[&Certificate],
+        intermediates: &[Certificate],
         current_time: SystemTime,
     ) -> Result<(), X509VerificationError> {
         // To verify this, we need to get the "rightmost" certificate that we then
@@ -167,6 +167,7 @@ impl X509Store {
             .to_unix_duration();
 
         if current_time > not_after {
+            debug!(?current_time, ?not_after);
             return Err(X509VerificationError::NotAfter);
         }
 
@@ -239,8 +240,12 @@ impl X509Store {
         }
 
         // Now validate the signature of the certificate_to_validate
+        // A reasonable person would assume that a CA can only issue certificates using the same
+        // algorithm that it declares that it uses. However, that's simply just false, some
+        // CA's, especially that use RSA, may use a different digest.
         if certificate_to_validate.signature_algorithm != authority.tbs_certificate.signature {
-            return Err(X509VerificationError::SignatureAlgorithmMismatch);
+            warn!(?certificate_to_validate.signature_algorithm, ?authority.tbs_certificate.signature);
+            // return Err(X509VerificationError::SignatureAlgorithmMismatch);
         }
 
         let cert_to_validate_data = certificate_to_validate
@@ -253,9 +258,10 @@ impl X509Store {
             .as_bytes()
             .ok_or(X509VerificationError::DerSignatureInvalid)?;
 
-        verify_signature(
+        verify_der_signature(
             &cert_to_validate_data,
             cert_to_validate_signature,
+            &certificate_to_validate.signature_algorithm,
             authority,
         )?;
 
@@ -275,9 +281,13 @@ impl X509Store {
     }
 }
 
-pub fn verify_signature(
+// We can't use the generic x509_verify_signature here because the format
+// of these signatures within an x509 cert is DER and different than the
+// "generic" signatures you may get on something like a JWT
+fn verify_der_signature(
     data: &[u8],
     signature: &[u8],
+    signature_algorithm: &AlgorithmIdentifier<der::Any>,
     certificate: &Certificate,
 ) -> Result<(), X509VerificationError> {
     let subject_public_key_info = certificate
@@ -285,7 +295,7 @@ pub fn verify_signature(
         .subject_public_key_info
         .owned_to_ref();
 
-    match certificate.tbs_certificate.signature.oid {
+    match signature_algorithm.oid {
         oiddb::rfc5912::ECDSA_WITH_SHA_256 => {
             let signature = EcdsaP256DerSignature::try_from(signature)
                 .map_err(|_err| X509VerificationError::DerSignatureInvalid)?;
@@ -342,7 +352,7 @@ mod tests {
     };
     use crate::test_ca::*;
     use crate::traits::{DecodePem, Signer, Verifier};
-    use crate::x509::{Certificate, Name, Time};
+    use crate::x509::{Certificate, Name, Time, X509Display};
     use der::referenced::OwnedToRef;
     use std::str::FromStr;
     use std::time::Duration;
@@ -372,6 +382,8 @@ mod tests {
             &int_ca_cert,
         );
 
+        tracing::debug!(cert = %X509Display::from(&server_cert));
+
         // Also sign some data to validate.
         let test_data = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
@@ -381,10 +393,10 @@ mod tests {
             .expect("Unable to sign test data");
 
         // Certs setup, validate now.
-        let ca_store = X509Store::new(&[&root_ca_cert]);
+        let ca_store = X509Store::new(&[root_ca_cert]);
 
         let leaf = &server_cert;
-        let chain = [&int_ca_cert];
+        let chain = [int_ca_cert];
 
         assert_eq!(ca_store.verify(leaf, &chain, now), Ok(()));
 
@@ -408,7 +420,7 @@ mod tests {
         let global_sign_root_cert = Certificate::from_pem(GLOBAL_SIGN_ROOT).unwrap();
         let mds_cert = Certificate::from_pem(FIDO_MDS).unwrap();
 
-        let ca_store = X509Store::new(&[&global_sign_root_cert]);
+        let ca_store = X509Store::new(&[global_sign_root_cert]);
 
         let now = SystemTime::now();
         let leaf = &mds_cert;
@@ -424,7 +436,7 @@ mod tests {
         let yubico_u2f_root_cert = Certificate::from_pem(YUBICO_U2F_ROOT).unwrap();
         let yubico_device_attest = Certificate::from_pem(YUBICO_DEVICE_ATTEST).unwrap();
 
-        let ca_store = X509Store::new(&[&yubico_u2f_root_cert]);
+        let ca_store = X509Store::new(&[yubico_u2f_root_cert]);
 
         let now = SystemTime::now();
         let leaf = &yubico_device_attest;

@@ -32,7 +32,7 @@ pub mod traits {
     pub use aes_gcm::aead::AeadInPlace;
     pub use crypto_common::KeyInit;
     pub use crypto_common::OutputSizeUser;
-    pub use der::DecodePem;
+    pub use der::{referenced::OwnedToRef, Decode as DecodeDer, DecodePem};
     pub use elliptic_curve::sec1::FromEncodedPoint;
     pub use hmac::Mac;
     pub use pkcs8::{
@@ -255,27 +255,25 @@ pub mod aes256cbc {
         mac: &HmacSha256Output,
         iv: &Aes256CbcIv,
         ciphertext: &[u8],
-    ) -> Result<Vec<u8>, ()>
+    ) -> Option<Vec<u8>>
     where
         P: block_padding::Padding<<aes::Aes256 as crypto_common::BlockSizeUser>::BlockSize>,
     {
         use hmac::Mac;
 
-        let mut hmac = HmacSha256::new_from_slice(key.as_slice()).map_err(|_| ())?;
+        let mut hmac = HmacSha256::new_from_slice(key.as_slice()).ok()?;
         hmac.update(ciphertext);
         let check_mac = hmac.finalize();
 
         if check_mac != *mac {
-            return Err(());
+            return None;
         }
 
         let dec = Aes256CbcDec::new(key, iv);
 
-        let plaintext = dec
-            .decrypt_padded_vec_mut::<P>(ciphertext)
-            .map_err(|_| ())?;
+        let plaintext = dec.decrypt_padded_vec_mut::<P>(ciphertext).ok()?;
 
-        Ok(plaintext)
+        Some(plaintext)
     }
 }
 
@@ -684,6 +682,9 @@ mod tests {
 
     #[test]
     fn rustls_mtls_basic() {
+        use crate::test_ca::*;
+        use crate::x509::X509Display;
+        use elliptic_curve::SecretKey;
         use rustls::{
             self,
             client::{ClientConfig, ClientConnection},
@@ -694,20 +695,14 @@ mod tests {
         use std::io::Read;
         use std::io::Write;
         use std::os::unix::net::UnixStream;
-        use std::sync::Arc;
-
-        use std::sync::atomic::{AtomicU16, Ordering};
-
         use std::str::FromStr;
+        use std::sync::atomic::{AtomicU16, Ordering};
+        use std::sync::Arc;
         use std::time::Duration;
         use std::time::SystemTime;
         use x509_cert::der::Encode;
         use x509_cert::name::Name;
         use x509_cert::time::Time;
-
-        use elliptic_curve::SecretKey;
-
-        use crate::test_ca::*;
 
         // ========================
         // CA SETUP
@@ -718,12 +713,7 @@ mod tests {
 
         let (root_signing_key, root_ca_cert) = build_test_ca_root(not_before, not_after);
 
-        let mut root_ca_cert_display = String::default();
-
-        crate::x509::display::cert_to_string_pretty(&root_ca_cert, &mut root_ca_cert_display)
-            .unwrap();
-
-        eprintln!("{}", &root_ca_cert_display);
+        eprintln!("{}", X509Display::from(&root_ca_cert));
 
         let subject = Name::from_str("CN=localhost").unwrap();
 
@@ -737,12 +727,7 @@ mod tests {
             &root_ca_cert,
         );
 
-        let mut server_cert_display = String::default();
-
-        crate::x509::display::cert_to_string_pretty(&server_cert, &mut server_cert_display)
-            .unwrap();
-
-        eprintln!("{}", &server_cert_display);
+        eprintln!("{}", X509Display::from(&server_cert));
 
         // ========================
         use p384::pkcs8::EncodePrivateKey;
