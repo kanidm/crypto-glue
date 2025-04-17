@@ -55,7 +55,7 @@ pub(crate) fn build_test_ca_root(
     let mut builder = CertificateBuilder::new(
         profile,
         serial_number,
-        validity.clone(),
+        validity,
         root_subject.clone(),
         pub_key.clone(),
         &signing_key,
@@ -85,7 +85,7 @@ pub(crate) fn build_test_ca_root(
 
     let cert_bytes = cert.tbs_certificate.to_der().unwrap();
 
-    let byte_sig: &[u8] = cert.signature.as_bytes().unwrap().into();
+    let byte_sig: &[u8] = cert.signature.as_bytes().unwrap();
     let cert_sig = DerSignature::try_from(byte_sig).unwrap();
     assert!(verifying_key.verify(&cert_bytes, &cert_sig).is_ok());
 
@@ -206,7 +206,7 @@ pub(crate) fn build_test_ca_int(
     let mut builder = CertificateBuilder::new(
         profile,
         serial_number,
-        validity.clone(),
+        validity,
         int_subject.clone(),
         int_pub_key.clone(),
         root_signing_key,
@@ -252,7 +252,7 @@ pub(crate) fn build_test_ca_int(
 
     let cert_bytes = int_cert.tbs_certificate.to_der().unwrap();
 
-    let byte_sig: &[u8] = int_cert.signature.as_bytes().unwrap().into();
+    let byte_sig: &[u8] = int_cert.signature.as_bytes().unwrap();
     let cert_sig = DerSignature::try_from(byte_sig).unwrap();
     assert!(root_verifying_key.verify(&cert_bytes, &cert_sig).is_ok());
 
@@ -371,11 +371,7 @@ pub(crate) fn build_test_ca_int(
     (int_signing_key, int_cert)
 }
 
-pub(crate) fn build_test_csr(
-    not_before: Time,
-    not_after: Time,
-    subject: Name,
-) -> (SigningKey, CertReq) {
+pub(crate) fn build_test_csr(subject: &Name) -> (SigningKey, CertReq) {
     let mut rng = rand::thread_rng();
 
     let client_signing_key = SigningKey::random(&mut rng);
@@ -409,7 +405,7 @@ pub(crate) fn build_test_csr(
 
     let req_bytes = client_cert_req.info.to_der().unwrap();
 
-    let byte_sig: &[u8] = client_cert_req.signature.as_bytes().unwrap().into();
+    let byte_sig: &[u8] = client_cert_req.signature.as_bytes().unwrap();
     let client_cert_req_sig = DerSignature::try_from(byte_sig).unwrap();
     assert!(extracted_public_key
         .verify(&req_bytes, &client_cert_req_sig)
@@ -468,7 +464,7 @@ pub(crate) fn test_ca_sign_client_csr(
     let mut builder = CertificateBuilder::new(
         profile,
         serial_number,
-        validity.clone(),
+        validity,
         client_cert_subject.clone(),
         spki.clone(),
         ca_signing_key,
@@ -661,7 +657,7 @@ pub(crate) fn test_ca_sign_server_csr(
     let mut builder = CertificateBuilder::new(
         profile,
         serial_number,
-        validity.clone(),
+        validity,
         server_cert_subject.clone(),
         spki.clone(),
         ca_signing_key,
@@ -829,7 +825,7 @@ fn test_ca_build_process() {
 
     let subject = Name::from_str("CN=multi pass").unwrap();
 
-    let (_client_key, client_csr) = build_test_csr(not_before, not_after, subject);
+    let (_client_key, client_csr) = build_test_csr(&subject);
 
     let _client_cert = test_ca_sign_client_csr(
         not_before,
@@ -843,7 +839,7 @@ fn test_ca_build_process() {
 
     let subject = Name::from_str("CN=localhost").unwrap();
 
-    let (_server_key, server_csr) = build_test_csr(not_before, not_after, subject);
+    let (_server_key, server_csr) = build_test_csr(&subject);
 
     let _server_cert = test_ca_sign_server_csr(
         not_before,

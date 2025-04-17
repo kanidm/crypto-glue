@@ -70,7 +70,7 @@ fn subject_public_key_pretty(
     indent_three: &str,
     f: &mut String,
 ) -> Result<(), fmt::Error> {
-    write!(f, "{indent}Subject Public Key Info:\n")?;
+    writeln!(f, "{indent}Subject Public Key Info:")?;
 
     write!(f, "{indent_two}Algorithm: ")?;
 
@@ -80,7 +80,7 @@ fn subject_public_key_pretty(
         &const_oid::db::rfc5912::ID_EC_PUBLIC_KEY => write!(f, "id-ec-public-key")?,
         oid => write!(f, "OID= {:?}", oid)?,
     }
-    write!(f, "\n")?;
+    writeln!(f)?;
 
     if let Ok(param_oid) = spki.algorithm.parameters_oid() {
         write!(f, "{indent_two}Parameters: ")?;
@@ -89,14 +89,14 @@ fn subject_public_key_pretty(
             const_oid::db::rfc5912::SECP_256_R_1 => write!(f, "SEC P256 R1")?,
             oid => write!(f, "OID= {:?}", oid)?,
         }
-        write!(f, "\n")?;
+        writeln!(f)?;
     }
 
-    write!(f, "{indent_two}Public Key:\n")?;
+    writeln!(f, "{indent_two}Public Key:")?;
     let sk_bytes = spki.subject_public_key.as_bytes().unwrap();
     write_bytes_pretty(indent_three, sk_bytes, f)?;
 
-    write!(f, "\n")
+    writeln!(f)
 }
 
 pub fn cert_to_string_pretty(
@@ -154,57 +154,57 @@ pub fn cert_to_string_pretty(
             c4:b2:ef:71:0f:a3:87:ee:79:21:6b:d1:a3:9f
     */
 
-    write!(f, "Certificate:\n")?;
+    writeln!(f, "Certificate:")?;
 
     // cert.tbs_certificate
-    write!(f, "{indent}Data:\n")?;
+    writeln!(f, "{indent}Data:")?;
 
     // Version
-    write!(
+    writeln!(
         f,
-        "{indent_two}Version: {:?}\n",
+        "{indent_two}Version: {:?}",
         cert.tbs_certificate.version
     )?;
 
     // Serial
-    write!(f, "{indent_two}Serial:\n")?;
+    writeln!(f, "{indent_two}Serial:")?;
     write_bytes_pretty(
         indent_three,
         cert.tbs_certificate.serial_number.as_bytes(),
         f,
     )?;
-    write!(f, "\n")?;
+    writeln!(f)?;
 
     // Subject
-    write!(f, "{indent_two}Subject: {}\n", cert.tbs_certificate.subject)?;
+    writeln!(f, "{indent_two}Subject: {}", cert.tbs_certificate.subject)?;
 
     // Issuer
-    write!(f, "{indent_two}Issuer: {}\n", cert.tbs_certificate.issuer)?;
+    writeln!(f, "{indent_two}Issuer: {}", cert.tbs_certificate.issuer)?;
 
     // Issuer Unique Id
     if let Some(issuer_unique_id) = &cert.tbs_certificate.issuer_unique_id {
-        write!(f, "{indent_two}Issuer Unique ID:\n")?;
+        writeln!(f, "{indent_two}Issuer Unique ID:")?;
         write_bytes_pretty(indent_three, issuer_unique_id.as_bytes().unwrap(), f)?;
-        write!(f, "\n")?;
+        writeln!(f)?;
     }
 
     // Subject Unique Id
     if let Some(subject_unique_id) = &cert.tbs_certificate.subject_unique_id {
-        write!(f, "{indent_two}Subject Unique ID:\n")?;
+        writeln!(f, "{indent_two}Subject Unique ID:")?;
         write_bytes_pretty(indent_three, subject_unique_id.as_bytes().unwrap(), f)?;
-        write!(f, "\n")?;
+        writeln!(f)?;
     }
 
     // Validity
-    write!(f, "{indent_two}Validity\n")?;
-    write!(
+    writeln!(f, "{indent_two}Validity")?;
+    writeln!(
         f,
-        "{indent_three}Not Before: {}\n",
+        "{indent_three}Not Before: {}",
         cert.tbs_certificate.validity.not_before
     )?;
-    write!(
+    writeln!(
         f,
-        "{indent_three}Not After: {}\n",
+        "{indent_three}Not After: {}",
         cert.tbs_certificate.validity.not_after
     )?;
 
@@ -219,7 +219,7 @@ pub fn cert_to_string_pretty(
         }
         oid => write!(f, "OID= {:?}", oid)?,
     }
-    write!(f, "\n")?;
+    writeln!(f)?;
 
     // SubjectPublic Key Info
     subject_public_key_pretty(
@@ -245,11 +245,11 @@ pub fn cert_to_string_pretty(
                 if extension.critical {
                     write!(f, " critical")?;
                 }
-                write!(f, "\n")?;
+                writeln!(f)?;
 
-                write!(f, "{indent_four}CA: {}\n", bc.ca)?;
+                writeln!(f, "{indent_four}CA: {}", bc.ca)?;
                 if let Some(path_len_constraint) = bc.path_len_constraint {
-                    write!(f, "{indent_four}Path Length: {}\n", path_len_constraint)?;
+                    writeln!(f, "{indent_four}Path Length: {}", path_len_constraint)?;
                 }
             }
 
@@ -263,11 +263,11 @@ pub fn cert_to_string_pretty(
                 if extension.critical {
                     write!(f, " critical")?;
                 }
-                write!(f, "\n")?;
+                writeln!(f)?;
 
                 write_bytes_pretty(indent_four, ski.as_ref().as_bytes(), f)?;
 
-                write!(f, "\n")?;
+                writeln!(f)?;
             }
 
             // Key Usage
@@ -280,42 +280,42 @@ pub fn cert_to_string_pretty(
                 if extension.critical {
                     write!(f, " critical")?;
                 }
-                write!(f, "\n")?;
+                writeln!(f)?;
 
                 if ku.digital_signature() {
-                    write!(f, "{indent_four}Digital Signature\n")?;
+                    writeln!(f, "{indent_four}Digital Signature")?;
                 }
 
                 if ku.non_repudiation() {
-                    write!(f, "{indent_four}Non Repudiation\n")?;
+                    writeln!(f, "{indent_four}Non Repudiation")?;
                 }
 
                 if ku.key_encipherment() {
-                    write!(f, "{indent_four}Key Encipherment\n")?;
+                    writeln!(f, "{indent_four}Key Encipherment")?;
                 }
 
                 if ku.data_encipherment() {
-                    write!(f, "{indent_four}Data Encipherment\n")?;
+                    writeln!(f, "{indent_four}Data Encipherment")?;
                 }
 
                 if ku.key_agreement() {
-                    write!(f, "{indent_four}Key Agreement\n")?;
+                    writeln!(f, "{indent_four}Key Agreement")?;
                 }
 
                 if ku.key_cert_sign() {
-                    write!(f, "{indent_four}Key Cert Sign\n")?;
+                    writeln!(f, "{indent_four}Key Cert Sign")?;
                 }
 
                 if ku.crl_sign() {
-                    write!(f, "{indent_four}CRL Sign\n")?;
+                    writeln!(f, "{indent_four}CRL Sign")?;
                 }
 
                 if ku.encipher_only() {
-                    write!(f, "{indent_four}Encipher Only\n")?;
+                    writeln!(f, "{indent_four}Encipher Only")?;
                 }
 
                 if ku.decipher_only() {
-                    write!(f, "{indent_four}Decipher Only\n")?;
+                    writeln!(f, "{indent_four}Decipher Only")?;
                 }
             }
 
@@ -329,24 +329,24 @@ pub fn cert_to_string_pretty(
                 if extension.critical {
                     write!(f, " critical")?;
                 }
-                write!(f, "\n")?;
+                writeln!(f)?;
 
                 if let Some(key_id) = &aki.key_identifier {
                     write_bytes_pretty(indent_four, key_id.as_ref(), f)?;
-                    write!(f, "\n")?;
+                    writeln!(f)?;
                 }
 
                 if let Some(aki_cert_issuer) = &aki.authority_cert_issuer {
                     for g_name in aki_cert_issuer.iter() {
                         write!(f, "{indent_four}")?;
                         general_name_pretty(g_name, f)?;
-                        write!(f, "\n")?;
+                        writeln!(f)?;
                     }
                 }
 
                 if let Some(aki_cert_serial) = &aki.authority_cert_serial_number {
                     write_bytes_pretty(indent_four, aki_cert_serial.as_bytes(), f)?;
-                    write!(f, "\n")?;
+                    writeln!(f)?;
                 }
             }
 
@@ -360,7 +360,7 @@ pub fn cert_to_string_pretty(
                 if extension.critical {
                     write!(f, " critical")?;
                 }
-                write!(f, "\n")?;
+                writeln!(f)?;
 
                 for oid in eku.as_ref().iter() {
                     write!(f, "{indent_four}")?;
@@ -374,13 +374,13 @@ pub fn cert_to_string_pretty(
                         &const_oid::db::rfc5280::ID_KP_CODE_SIGNING => write!(f, "Code Signing")?,
                         oid => write!(f, "OID= {:?}", oid)?,
                     }
-                    write!(f, "\n")?;
+                    writeln!(f)?;
                 }
             }
 
             oid => {
                 // Probably in RFC5280
-                write!(f, "{indent_three}Unknown Extension: OID= {:?}\n", oid)?
+                writeln!(f, "{indent_three}Unknown Extension: OID= {:?}", oid)?
             }
         }
     }
@@ -396,16 +396,16 @@ pub fn cert_to_string_pretty(
         }
         oid => write!(f, "OID= {:?}", oid)?,
     }
-    write!(f, "\n")?;
+    writeln!(f)?;
 
     // == Signature
     // let cert_sig = hex::encode(cert.signature.as_bytes()?);
     // write!(f, "{indent}Signature: {}\n", cert_sig)?;
 
-    write!(f, "{indent}Signature:\n")?;
+    writeln!(f, "{indent}Signature:")?;
     let c_bytes = cert.signature.as_bytes().unwrap();
     write_bytes_pretty(indent_two, c_bytes, f)?;
-    write!(f, "\n")?;
+    writeln!(f)?;
 
     // == Done
     Ok(())
