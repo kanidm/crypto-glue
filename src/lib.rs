@@ -149,6 +149,56 @@ pub mod hmac_s512 {
     }
 }
 
+pub mod aes128 {
+    use aes;
+    use crypto_common::Key;
+    use crypto_common::KeyInit;
+    use zeroize::Zeroizing;
+
+    pub type Aes128Key = Zeroizing<Key<aes::Aes128>>;
+
+    pub fn new_key() -> Aes128Key {
+        let mut rng = rand::thread_rng();
+        aes::Aes128::generate_key(&mut rng).into()
+    }
+}
+
+pub mod aes128gcm {
+    use aes::cipher::consts::{U12, U16};
+    // use aes::Aes128;
+    use aes_gcm::aead::AeadCore;
+    // use aes_gcm::AesGcm;
+    use generic_array::GenericArray;
+
+    pub use aes_gcm::aead::{Aead, AeadInPlace, Payload};
+    pub use crypto_common::KeyInit;
+
+    pub use crate::aes128::Aes128Key;
+
+    // Same as  AesGcm<Aes256, U12, U16>;
+    pub type Aes128Gcm = aes_gcm::Aes128Gcm;
+
+    pub type Aes128GcmNonce = GenericArray<u8, U12>;
+    pub type Aes128GcmTag = GenericArray<u8, U16>;
+
+    pub fn new_nonce() -> Aes128GcmNonce {
+        let mut rng = rand::thread_rng();
+        Aes128Gcm::generate_nonce(&mut rng)
+    }
+}
+
+pub mod aes128kw {
+    use aes::cipher::consts::U24;
+    use generic_array::GenericArray;
+
+    pub use crypto_common::KeyInit;
+
+    pub type Aes128Kw = aes_kw::KekAes128;
+
+    pub type Aes128KwWrapped = GenericArray<u8, U24>;
+}
+
+
 pub mod aes256 {
     use aes;
     use crypto_common::Key;
