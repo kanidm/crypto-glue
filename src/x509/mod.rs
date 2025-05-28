@@ -14,6 +14,8 @@ pub use x509_cert::spki::{
     AlgorithmIdentifier, SignatureBitStringEncoding, SubjectPublicKeyInfoOwned,
 };
 pub use x509_cert::time::{Time, Validity};
+pub use x509_cert::builder::RequestBuilder as CertificateRequestBuilder;
+pub use x509_cert::request::CertReq as CertificateRequest;
 
 use crate::{
     ecdsa_p256::{EcdsaP256PublicKey, EcdsaP256Signature, EcdsaP256VerifyingKey},

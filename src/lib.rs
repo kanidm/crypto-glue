@@ -32,7 +32,7 @@ pub mod traits {
     pub use aes_gcm::aead::AeadInPlace;
     pub use crypto_common::KeyInit;
     pub use crypto_common::OutputSizeUser;
-    pub use der::{referenced::OwnedToRef, Decode as DecodeDer, DecodePem};
+    pub use der::{referenced::OwnedToRef, Decode as DecodeDer, DecodePem, Encode as EncodeDer, EncodePem};
     pub use elliptic_curve::sec1::FromEncodedPoint;
     pub use hmac::Mac;
     pub use pkcs8::{
