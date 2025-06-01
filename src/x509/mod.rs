@@ -2,6 +2,7 @@ pub use self::chain::{X509Store, X509VerificationError};
 pub use self::display::X509Display;
 pub use const_oid::db as oiddb;
 pub use der::asn1::BitString;
+pub use x509_cert::builder::RequestBuilder as CertificateRequestBuilder;
 pub use x509_cert::builder::{Builder, CertificateBuilder, Profile};
 pub use x509_cert::certificate::Certificate;
 pub use x509_cert::ext::pkix::{
@@ -9,13 +10,12 @@ pub use x509_cert::ext::pkix::{
     SubjectKeyIdentifier,
 };
 pub use x509_cert::name::Name;
+pub use x509_cert::request::CertReq as CertificateRequest;
 pub use x509_cert::serial_number::SerialNumber;
 pub use x509_cert::spki::{
     AlgorithmIdentifier, SignatureBitStringEncoding, SubjectPublicKeyInfoOwned,
 };
 pub use x509_cert::time::{Time, Validity};
-pub use x509_cert::builder::RequestBuilder as CertificateRequestBuilder;
-pub use x509_cert::request::CertReq as CertificateRequest;
 
 use crate::{
     ecdsa_p256::{EcdsaP256PublicKey, EcdsaP256Signature, EcdsaP256VerifyingKey},

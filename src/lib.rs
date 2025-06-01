@@ -32,7 +32,9 @@ pub mod traits {
     pub use aes_gcm::aead::AeadInPlace;
     pub use crypto_common::KeyInit;
     pub use crypto_common::OutputSizeUser;
-    pub use der::{referenced::OwnedToRef, Decode as DecodeDer, DecodePem, Encode as EncodeDer, EncodePem};
+    pub use der::{
+        referenced::OwnedToRef, Decode as DecodeDer, DecodePem, Encode as EncodeDer, EncodePem,
+    };
     pub use elliptic_curve::sec1::FromEncodedPoint;
     pub use hmac::Mac;
     pub use pkcs8::{
@@ -157,6 +159,19 @@ pub mod aes128 {
 
     pub type Aes128Key = Zeroizing<Key<aes::Aes128>>;
 
+    pub fn key_size() -> usize {
+        use crypto_common::KeySizeUser;
+        aes::Aes128::key_size()
+    }
+
+    pub fn key_from_slice(bytes: &[u8]) -> Option<Aes128Key> {
+        Key::<aes::Aes128>::from_exact_iter(bytes.iter().copied()).map(|key| key.into())
+    }
+
+    pub fn key_from_bytes(bytes: [u8; 16]) -> Aes128Key {
+        Key::<aes::Aes128>::from(bytes).into()
+    }
+
     pub fn new_key() -> Aes128Key {
         let mut rng = rand::thread_rng();
         aes::Aes128::generate_key(&mut rng).into()
@@ -197,7 +212,6 @@ pub mod aes128kw {
 
     pub type Aes128KwWrapped = GenericArray<u8, U24>;
 }
-
 
 pub mod aes256 {
     use aes;
