@@ -45,6 +45,7 @@ const-oid = "0.9"
 
 sha1 = "0.10"
 sha2 = "0.10"
+subtle = "^2.6.1"
 tracing = "^0.1.37"
 
 generic-array = { version = "0.14.7", features = ["serde", "zeroize"] }
