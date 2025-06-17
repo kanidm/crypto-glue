@@ -51,6 +51,9 @@ pub mod traits {
         DecodePublicKey as SpkiDecodePublicKey, EncodePublicKey as SpkiEncodePublicKey,
     };
     pub use zeroize::Zeroizing;
+    pub mod hazmat {
+        pub use rsa::signature::hazmat::PrehashVerifier;
+    }
 }
 
 pub mod x509;
