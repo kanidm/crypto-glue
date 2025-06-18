@@ -169,7 +169,7 @@ impl X509Store {
             .to_unix_duration();
 
         if not_before > current_time {
-            debug!(?not_before, ?current_time);
+            trace!(?not_before, ?current_time);
             return Err(X509VerificationError::NotBefore);
         }
 
@@ -314,7 +314,7 @@ fn verify_der_signature(
         .oids()
         .map_err(|_| X509VerificationError::SubjectPublicKeyInformationInvalid)?;
 
-    tracing::trace!(?signature_algorithm.oid, ?spki_alg_oid, ?spki_alg_params);
+    trace!(?signature_algorithm.oid, ?spki_alg_oid, ?spki_alg_params);
 
     match (signature_algorithm.oid, spki_alg_oid, spki_alg_params) {
         (rfc5912::ECDSA_WITH_SHA_256, rfc5912::ID_EC_PUBLIC_KEY, Some(rfc5912::SECP_256_R_1)) => {
