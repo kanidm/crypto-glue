@@ -1,15 +1,15 @@
-use crate::x509::{AlgorithmIdentifier, BasicConstraints, Certificate, KeyUsage};
+use crate::x509::{oiddb::rfc5912, AlgorithmIdentifier, BasicConstraints, Certificate, KeyUsage};
 use crate::{
     ecdsa_p256::{EcdsaP256DerSignature, EcdsaP256PublicKey, EcdsaP256VerifyingKey},
     ecdsa_p384::{EcdsaP384DerSignature, EcdsaP384PublicKey, EcdsaP384VerifyingKey},
     rsa::{RS256PublicKey, RS256Signature, RS256VerifyingKey},
-    traits::Verifier,
+    s256::{Sha256, Sha256Output},
+    traits::{hazmat::PrehashVerifier, Digest, Verifier},
 };
-use const_oid::db as oiddb;
 use der::referenced::OwnedToRef;
 use der::Encode;
 use std::time::{Duration, SystemTime};
-use tracing::{debug, error, warn};
+use tracing::{debug, error, trace, warn};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum X509VerificationError {
@@ -32,17 +32,24 @@ pub enum X509VerificationError {
     SignatureVerificationFailed,
     CertificateSerialisation,
     KeyUsageNotPresent,
+    SubjectPublicKeyInformationInvalid,
 }
 
 pub struct X509Store {
     store: Vec<Certificate>,
+    leaf_basic_constraints_required: bool,
 }
 
 impl X509Store {
     pub fn new(ca_roots: &[Certificate]) -> Self {
         Self {
             store: ca_roots.iter().map(|c| (*c).clone()).collect(),
+            leaf_basic_constraints_required: true,
         }
+    }
+
+    pub fn leaf_basic_constraints_required(&mut self, enable: bool) {
+        self.leaf_basic_constraints_required = enable;
     }
 
     pub fn verify(
@@ -50,7 +57,7 @@ impl X509Store {
         leaf: &Certificate,
         intermediates: &[Certificate],
         current_time: SystemTime,
-    ) -> Result<(), X509VerificationError> {
+    ) -> Result<&Certificate, X509VerificationError> {
         // To verify this, we need to get the "rightmost" certificate that we then
         // check is valid wrt to our store.
         //
@@ -114,8 +121,8 @@ impl X509Store {
         // At this point we have established the chain back to the CA is valid along
         // the path of intermediates.
 
-        // That's it!
-        Ok(())
+        // That's it! Return the CA that ultimately signed this chain.
+        Ok(authority_cert)
     }
 
     fn validate_leaf(
@@ -126,15 +133,20 @@ impl X509Store {
         // Client Leaf Cert
         //   Basic Constraints: critical
         //     CA:FALSE
-        let (_critical, basic_constraints) = certificate_to_validate
+        let maybe_basic_constraints = certificate_to_validate
             .tbs_certificate
             .get::<BasicConstraints>()
-            .map_err(|_err| X509VerificationError::ExtensionFailure)?
-            .ok_or(X509VerificationError::BasicConstraintsNotPresent)?;
+            .map_err(|_err| X509VerificationError::ExtensionFailure)?;
+        // If not present, we act as if this is not a CA.
+        // .ok_or(
 
-        if basic_constraints.ca {
-            return Err(X509VerificationError::LeafMustNotBeCA);
-        }
+        if let Some((_critical, basic_constraints)) = maybe_basic_constraints {
+            if basic_constraints.ca {
+                return Err(X509VerificationError::LeafMustNotBeCA);
+            }
+        } else if self.leaf_basic_constraints_required {
+            return Err(X509VerificationError::BasicConstraintsNotPresent);
+        };
 
         let maybe_keyusage = certificate_to_validate
             .tbs_certificate
@@ -157,6 +169,7 @@ impl X509Store {
             .to_unix_duration();
 
         if not_before > current_time {
+            trace!(?not_before, ?current_time);
             return Err(X509VerificationError::NotBefore);
         }
 
@@ -194,6 +207,7 @@ impl X509Store {
             .tbs_certificate
             .get::<BasicConstraints>()
             .map_err(|_err| X509VerificationError::ExtensionFailure)?
+            // You are a CA, you must have this.
             .ok_or(X509VerificationError::BasicConstraintsNotPresent)?;
 
         if !basic_constraints.ca {
@@ -295,10 +309,19 @@ fn verify_der_signature(
         .subject_public_key_info
         .owned_to_ref();
 
-    match signature_algorithm.oid {
-        oiddb::rfc5912::ECDSA_WITH_SHA_256 => {
-            let signature = EcdsaP256DerSignature::try_from(signature)
-                .map_err(|_err| X509VerificationError::DerSignatureInvalid)?;
+    let (spki_alg_oid, spki_alg_params) = subject_public_key_info
+        .algorithm
+        .oids()
+        .map_err(|_| X509VerificationError::SubjectPublicKeyInformationInvalid)?;
+
+    trace!(?signature_algorithm.oid, ?spki_alg_oid, ?spki_alg_params);
+
+    match (signature_algorithm.oid, spki_alg_oid, spki_alg_params) {
+        (rfc5912::ECDSA_WITH_SHA_256, rfc5912::ID_EC_PUBLIC_KEY, Some(rfc5912::SECP_256_R_1)) => {
+            let signature = EcdsaP256DerSignature::try_from(signature).map_err(|err| {
+                error!(?err);
+                X509VerificationError::DerSignatureInvalid
+            })?;
 
             let verifier = EcdsaP256PublicKey::try_from(subject_public_key_info)
                 .map(EcdsaP256VerifyingKey::from)
@@ -308,7 +331,24 @@ fn verify_der_signature(
                 .verify(data, &signature)
                 .map_err(|_err| X509VerificationError::SignatureVerificationFailed)?;
         }
-        oiddb::rfc5912::ECDSA_WITH_SHA_384 => {
+        (rfc5912::ECDSA_WITH_SHA_256, rfc5912::ID_EC_PUBLIC_KEY, Some(rfc5912::SECP_384_R_1)) => {
+            let signature = EcdsaP384DerSignature::try_from(signature)
+                .map_err(|_err| X509VerificationError::DerSignatureInvalid)?;
+
+            let verifier = EcdsaP384PublicKey::try_from(subject_public_key_info)
+                .map(EcdsaP384VerifyingKey::from)
+                .map_err(|_err| X509VerificationError::VerifyingKeyFromSpki)?;
+
+            // let
+            let mut hasher = Sha256::new();
+            hasher.update(data);
+            let out: Sha256Output = hasher.finalize();
+
+            verifier
+                .verify_prehash(out.as_slice(), &signature)
+                .map_err(|_err| X509VerificationError::SignatureVerificationFailed)?;
+        }
+        (rfc5912::ECDSA_WITH_SHA_384, rfc5912::ID_EC_PUBLIC_KEY, Some(rfc5912::SECP_384_R_1)) => {
             let signature = EcdsaP384DerSignature::try_from(signature)
                 .map_err(|_err| X509VerificationError::DerSignatureInvalid)?;
 
@@ -320,7 +360,7 @@ fn verify_der_signature(
                 .verify(data, &signature)
                 .map_err(|_err| X509VerificationError::SignatureVerificationFailed)?;
         }
-        oiddb::rfc5912::SHA_256_WITH_RSA_ENCRYPTION => {
+        (rfc5912::SHA_256_WITH_RSA_ENCRYPTION, rfc5912::RSA_ENCRYPTION, None) => {
             let signature = RS256Signature::try_from(signature)
                 .map_err(|_err| X509VerificationError::DerSignatureInvalid)?;
 
@@ -332,8 +372,8 @@ fn verify_der_signature(
                 .verify(data, &signature)
                 .map_err(|_err| X509VerificationError::SignatureVerificationFailed)?;
         }
-        algo_oid => {
-            error!(?algo_oid);
+        (signature_algorithm_oid, spki_alg_oid, spki_alg_params) => {
+            error!(?signature_algorithm_oid, ?spki_alg_oid, ?spki_alg_params);
             return Err(X509VerificationError::SignatureAlgorithmNotImplemented);
         }
     }
@@ -398,7 +438,7 @@ mod tests {
         let leaf = &server_cert;
         let chain = [int_ca_cert];
 
-        assert_eq!(ca_store.verify(leaf, &chain, now), Ok(()));
+        assert!(ca_store.verify(leaf, &chain, now).is_ok());
 
         // Now validate our data signature.
         let subject_public_key_info = server_cert
@@ -426,7 +466,7 @@ mod tests {
         let leaf = &mds_cert;
         let chain = [];
 
-        assert_eq!(ca_store.verify(leaf, &chain, now), Ok(()));
+        assert!(ca_store.verify(leaf, &chain, now).is_ok());
     }
 
     #[test]
@@ -442,7 +482,7 @@ mod tests {
         let leaf = &yubico_device_attest;
         let chain = [];
 
-        assert_eq!(ca_store.verify(leaf, &chain, now), Ok(()));
+        assert!(ca_store.verify(leaf, &chain, now).is_ok());
     }
 
     const YUBICO_U2F_ROOT: &str = r#"-----BEGIN CERTIFICATE-----
