@@ -9,7 +9,7 @@ use crate::{
 use der::referenced::OwnedToRef;
 use der::Encode;
 use std::time::{Duration, SystemTime};
-use tracing::{debug, error, warn};
+use tracing::{debug, error, trace, warn};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum X509VerificationError {
