@@ -530,6 +530,10 @@ pub mod nist_sp800_108_kdf_hmac_sha256 {
     }
 }
 
+pub mod pkcs8 {
+    pub use pkcs8::PrivateKeyInfo;
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
@@ -747,6 +751,23 @@ mod tests {
             derived_secret_a.raw_secret_bytes(),
             derived_secret_b.raw_secret_bytes()
         );
+    }
+
+    #[test]
+    fn pkcs8_handling_test() {
+        use crate::ecdsa_p256;
+        use crate::traits::Pkcs8EncodePrivateKey;
+
+        // use pkcs8::SecretDocument;
+        use pkcs8::PrivateKeyInfo;
+
+        let ecdsa_priv_key = ecdsa_p256::new_key();
+        let ecdsa_priv_key_der = ecdsa_priv_key.to_pkcs8_der().unwrap();
+
+        let priv_key_info = PrivateKeyInfo::try_from(ecdsa_priv_key_der.as_bytes())
+            .unwrap();
+
+        eprintln!("{:?}", priv_key_info);
     }
 
     #[test]
