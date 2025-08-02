@@ -399,6 +399,10 @@ pub mod rsa {
     }
 }
 
+pub mod ec {
+    pub use sec1::EcPrivateKey;
+}
+
 pub mod ecdh_p256 {
     use elliptic_curve::ecdh::{EphemeralSecret, SharedSecret};
     use elliptic_curve::sec1::EncodedPoint;
