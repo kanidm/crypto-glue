@@ -403,6 +403,10 @@ pub mod ec {
     pub use sec1::EcPrivateKey;
 }
 
+pub mod ecdh {
+    pub use elliptic_curve::ecdh::diffie_hellman;
+}
+
 pub mod ecdh_p256 {
     use elliptic_curve::ecdh::{EphemeralSecret, SharedSecret};
     use elliptic_curve::sec1::EncodedPoint;
@@ -434,6 +438,7 @@ pub mod ecdsa_p256 {
     use elliptic_curve::point::AffinePoint;
     use elliptic_curve::sec1::EncodedPoint;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
+    use elliptic_curve::scalar::{NonZeroScalar, ScalarPrimitive};
     use generic_array::GenericArray;
     use p256::{ecdsa::DerSignature, NistP256};
     use sha2::digest::consts::U32;
@@ -441,6 +446,8 @@ pub mod ecdsa_p256 {
     pub type EcdsaP256Digest = <NistP256 as DigestPrimitive>::Digest;
 
     pub type EcdsaP256PrivateKey = SecretKey<NistP256>;
+    pub type EcdsaP256NonZeroScalar = NonZeroScalar<NistP256>;
+    pub type EcdsaP256ScalarPrimitive = ScalarPrimitive<NistP256>;
 
     pub type EcdsaP256FieldBytes = FieldBytes<NistP256>;
     pub type EcdsaP256AffinePoint = AffinePoint<NistP256>;
