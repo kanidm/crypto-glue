@@ -462,11 +462,18 @@ mod tests {
 
         let ca_store = X509Store::new(&[global_sign_root_cert]);
 
-        let now = SystemTime::now();
+        // To check before expiry
+        let now = SystemTime::UNIX_EPOCH + Duration::from_secs(1753733820);
         let leaf = &mds_cert;
         let chain = [];
 
-        assert!(ca_store.verify(leaf, &chain, now).is_ok());
+        let result = ca_store.verify(leaf, &chain, now);
+        assert!(result.is_ok());
+
+        // Check expiry causes this to be invalid
+        let now = SystemTime::UNIX_EPOCH + Duration::from_secs(1753733825);
+        let result = ca_store.verify(leaf, &chain, now);
+        assert!(result.is_err());
     }
 
     #[test]

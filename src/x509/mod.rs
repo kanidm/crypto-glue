@@ -2,14 +2,16 @@ pub use self::chain::{X509Store, X509VerificationError};
 pub use self::display::X509Display;
 pub use const_oid::db as oiddb;
 pub use const_oid::{AssociatedOid, ObjectIdentifier};
-pub use der::asn1::BitString;
+pub use der::asn1::{BitString, Ia5String};
 pub use x509_cert::builder::RequestBuilder as CertificateRequestBuilder;
 pub use x509_cert::builder::{Builder, CertificateBuilder, Profile};
 pub use x509_cert::certificate::{Certificate, Version};
-pub use x509_cert::ext::pkix::name::{GeneralName, OtherName};
+pub use x509_cert::ext::pkix::name::{GeneralName, OtherName, DistributionPointName};
 pub use x509_cert::ext::pkix::{
     AuthorityKeyIdentifier, BasicConstraints, ExtendedKeyUsage, KeyUsage, KeyUsages,
-    SubjectAltName, SubjectKeyIdentifier,
+    SubjectAltName, SubjectKeyIdentifier, AuthorityInfoAccessSyntax, AccessDescription,
+    crl::dp::DistributionPoint,
+    crl::CrlDistributionPoints,
 };
 pub use x509_cert::name::Name;
 pub use x509_cert::request::CertReq as CertificateRequest;
