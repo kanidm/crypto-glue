@@ -1,7 +1,7 @@
 [package]
 name = "crypto-glue"
 description = "A facade over the RustCrypto ecosystem"
-version = "0.1.10"
+version = "0.1.11"
 edition = "2021"
 license = "MPL-2.0"
 homepage = "https://github.com/kanidm/crypto-glue/"
@@ -48,7 +48,10 @@ sha2 = "0.10"
 subtle = "^2.6.1"
 tracing = "^0.1.37"
 
-generic-array = { version = "0.14.7", features = ["serde", "zeroize"] }
+## WARNING - 0.14.8 and above introduces a deprecation warning to ALL functions in generic-array.
+##           We can't really do much about it until the rustCrypto ecosystem either upgrades to
+##           1.x, or they complete their move to their "hybrid-array" crate.
+generic-array = { version = "=0.14.7", features = ["serde", "zeroize"] }
 zeroize = { version = "1.6.0", features = ["serde"] }
 
 rustls = { version = "0.23", default-features = false, features = ["custom-provider", "std"] }
