@@ -18,6 +18,7 @@
 #![allow(clippy::unreachable)]
 
 pub use argon2;
+pub use cipher::block_padding;
 pub use hex;
 pub use rand;
 pub use spki;
@@ -40,7 +41,10 @@ pub mod traits {
     pub use pkcs8::{
         DecodePrivateKey as Pkcs8DecodePrivateKey, EncodePrivateKey as Pkcs8EncodePrivateKey,
     };
-    pub use rsa::pkcs1::DecodeRsaPrivateKey as Pkcs1DecodeRsaPrivateKey;
+    pub use rsa::pkcs1::{
+        DecodeRsaPrivateKey as Pkcs1DecodeRsaPrivateKey,
+        EncodeRsaPrivateKey as Pkcs1EncodeRsaPrivateKey
+    };
     pub use rsa::signature::{
         DigestSigner, DigestVerifier, Keypair, RandomizedSigner, SignatureEncoding, Signer,
         Verifier,
@@ -78,6 +82,13 @@ pub mod s256 {
     pub type Sha256Output = GenericArray<u8, U32>;
 }
 
+pub mod hkdf_s256 {
+    use hkdf::Hkdf;
+    use sha2::Sha256;
+
+    pub type HkdfSha256 = Hkdf<Sha256>;
+}
+
 pub mod hmac_s256 {
     use crypto_common::Key;
     use crypto_common::Output;
@@ -110,7 +121,19 @@ pub mod hmac_s256 {
     }
 
     pub fn key_from_vec(bytes: Vec<u8>) -> Option<HmacSha256Key> {
-        Key::<Hmac<Sha256>>::from_exact_iter(bytes).map(|key| key.into())
+        key_from_slice(&bytes)
+    }
+
+    pub fn key_from_slice(bytes: &[u8]) -> Option<HmacSha256Key> {
+        // Key too short - too long.
+        if bytes.len() < 32 || bytes.len() > 64 {
+            None
+        } else {
+            let mut key = Key::<Hmac<Sha256>>::default();
+            let key_ref = &mut key.as_mut_slice()[..bytes.len()];
+            key_ref.copy_from_slice(bytes);
+            Some(key.into())
+        }
     }
 
     pub fn key_from_bytes(bytes: [u8; 64]) -> HmacSha256Key {
@@ -436,9 +459,10 @@ pub mod ecdsa_p256 {
     use ecdsa::hazmat::DigestPrimitive;
     use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
     use elliptic_curve::point::AffinePoint;
-    use elliptic_curve::sec1::EncodedPoint;
-    use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
     use elliptic_curve::scalar::{NonZeroScalar, ScalarPrimitive};
+    use elliptic_curve::sec1::EncodedPoint;
+    use elliptic_curve::sec1::FromEncodedPoint;
+    use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
     use generic_array::GenericArray;
     use p256::{ecdsa::DerSignature, NistP256};
     use sha2::digest::consts::U32;
@@ -467,6 +491,25 @@ pub mod ecdsa_p256 {
     pub fn new_key() -> EcdsaP256PrivateKey {
         let mut rng = rand::thread_rng();
         EcdsaP256PrivateKey::random(&mut rng)
+    }
+
+    pub fn from_coords_raw(x: &[u8], y: &[u8]) -> Option<EcdsaP256PublicKey> {
+        let mut field_x = EcdsaP256FieldBytes::default();
+        if x.len() != field_x.len() {
+            return None;
+        }
+
+        let mut field_y = EcdsaP256FieldBytes::default();
+        if y.len() != field_y.len() {
+            return None;
+        }
+
+        field_x.copy_from_slice(x);
+        field_y.copy_from_slice(y);
+
+        let ep = EcdsaP256PublicEncodedPoint::from_affine_coordinates(&field_x, &field_y, false);
+
+        EcdsaP256PublicKey::from_encoded_point(&ep).into_option()
     }
 }
 
@@ -775,8 +818,7 @@ mod tests {
         let ecdsa_priv_key = ecdsa_p256::new_key();
         let ecdsa_priv_key_der = ecdsa_priv_key.to_pkcs8_der().unwrap();
 
-        let priv_key_info = PrivateKeyInfo::try_from(ecdsa_priv_key_der.as_bytes())
-            .unwrap();
+        let priv_key_info = PrivateKeyInfo::try_from(ecdsa_priv_key_der.as_bytes()).unwrap();
 
         eprintln!("{:?}", priv_key_info);
     }
