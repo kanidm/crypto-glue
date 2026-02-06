@@ -550,7 +550,8 @@ pub mod ecdsa_p384 {
 
 pub mod nist_sp800_108_kdf_hmac_sha256 {
     use crate::traits::Zeroizing;
-    use digest_pre::{consts::*, crypto_common::KeySizeUser};
+    use digest_pre::consts::*;
+    use crypto_common_pre::KeySizeUser;
     use hmac_pre::Hmac;
     use kbkdf::{Counter, Kbkdf, Params};
     use sha2_pre::Sha256;
