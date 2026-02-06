@@ -22,7 +22,7 @@ aes-kw = "0.2.1"
 argon2 = { version = "0.5.2" }
 cbc = "0.1.2"
 cipher = { version = "0.4", features = ["block-padding", "alloc"] }
-crypto-common = { version = "0.1", features = ["rand_core"] }
+crypto-common = { version = "=0.1", features = ["rand_core"] }
 der = "0.7.9"
 # dhkem = "0.0.1-alpha"
 ecdsa = "0.16"
@@ -52,6 +52,7 @@ tracing = "^0.1.37"
 ##           We can't really do much about it until the rustCrypto ecosystem either upgrades to
 ##           1.x, or they complete their move to their "hybrid-array" crate.
 generic-array = { version = "=0.14.7", features = ["serde", "zeroize"] }
+hybrid-array = { version = "0.4", features = ["serde", "zeroize"] }
 zeroize = { version = "1.6.0", features = ["serde"] }
 
 rustls = { version = "0.23", default-features = false, features = ["custom-provider", "std"] }
@@ -60,10 +61,11 @@ uuid = { version = "1", features = ["v4"] }
 # concat-kdf = { git = "https://github.com/RustCrypto/KDFs.git", rev = "b1d7fe67b3053deef498563adcf415ec631d1cd8" }
 # concat-kdf = "0.2.0-pre"
 
-kbkdf = "0.0.1"
-hmac-pre = { package = "hmac", version = "0.13.0-pre.4", default-features = false }
-sha2-pre = { package = "sha2", version = "0.11.0-pre.2", default-features = false }
-digest-pre = { package = "digest", version = "0.11.0-pre.9", default-features = false, features = ["mac"] }
+kbkdf = { version = "0.1.0-rc.1" }
+hmac-pre = { package = "hmac", version = "0.13.0-rc.5", default-features = false }
+sha2-pre = { package = "sha2", version = "0.11.0-rc.5", default-features = false }
+digest-pre = { package = "digest", version = "0.11.0-rc.11", default-features = false, features = ["mac"] }
+crypto-common-pre = { package = "crypto-common", version = "0.2.0-rc.15", features = ["rand_core"] }
 
 [dev-dependencies]
 rustls-rustcrypto = "0.0.2-alpha"
