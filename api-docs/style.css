@@ -6,7 +6,7 @@
     left: 0;
     top: 0;
     right: 0;
-    height: 70px;
+    height: 45px;
     padding-top: 10px;
     padding-bottom: 10px;
     text-align: center;
@@ -15,5 +15,5 @@
 }
 
 body {
-    padding-top: 70px !important;
+    padding-top: 45px !important;
 }
