@@ -19,6 +19,7 @@
 
 pub use argon2;
 pub use cipher::block_padding;
+pub use der;
 pub use hex;
 pub use rand;
 pub use spki;
@@ -43,7 +44,7 @@ pub mod traits {
     };
     pub use rsa::pkcs1::{
         DecodeRsaPrivateKey as Pkcs1DecodeRsaPrivateKey,
-        EncodeRsaPrivateKey as Pkcs1EncodeRsaPrivateKey
+        EncodeRsaPrivateKey as Pkcs1EncodeRsaPrivateKey,
     };
     pub use rsa::signature::{
         DigestSigner, DigestVerifier, Keypair, RandomizedSigner, SignatureEncoding, Signer,
@@ -126,7 +127,7 @@ pub mod hmac_s256 {
 
     pub fn key_from_slice(bytes: &[u8]) -> Option<HmacSha256Key> {
         // Key too short - too long.
-        if bytes.len() < 32 || bytes.len() > 64 {
+        if bytes.len() < 16 || bytes.len() > 64 {
             None
         } else {
             let mut key = Key::<Hmac<Sha256>>::default();
@@ -518,6 +519,7 @@ pub mod ecdsa_p384 {
     use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
     use elliptic_curve::point::AffinePoint;
     use elliptic_curve::sec1::EncodedPoint;
+    use elliptic_curve::sec1::FromEncodedPoint;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
     // use generic_array::GenericArray;
     use p384::{ecdsa::DerSignature, NistP384};
@@ -546,12 +548,86 @@ pub mod ecdsa_p384 {
         let mut rng = rand::thread_rng();
         EcdsaP384PrivateKey::random(&mut rng)
     }
+
+    pub fn from_coords_raw(x: &[u8], y: &[u8]) -> Option<EcdsaP384PublicKey> {
+        let mut field_x = EcdsaP384FieldBytes::default();
+        if x.len() != field_x.len() {
+            return None;
+        }
+
+        let mut field_y = EcdsaP384FieldBytes::default();
+        if y.len() != field_y.len() {
+            return None;
+        }
+
+        field_x.copy_from_slice(x);
+        field_y.copy_from_slice(y);
+
+        let ep = EcdsaP384PublicEncodedPoint::from_affine_coordinates(&field_x, &field_y, false);
+
+        EcdsaP384PublicKey::from_encoded_point(&ep).into_option()
+    }
+}
+
+pub mod ecdsa_p521 {
+    use ecdsa::hazmat::DigestPrimitive;
+    use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
+    use elliptic_curve::point::AffinePoint;
+    use elliptic_curve::sec1::EncodedPoint;
+    use elliptic_curve::sec1::FromEncodedPoint;
+    use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
+    // use generic_array::GenericArray;
+    use p521::{ecdsa::DerSignature, NistP521};
+    // use sha2::digest::consts::U32;
+
+    pub type EcdsaP521Digest = <NistP521 as DigestPrimitive>::Digest;
+
+    pub type EcdsaP521PrivateKey = SecretKey<NistP521>;
+
+    pub type EcdsaP521FieldBytes = FieldBytes<NistP521>;
+    pub type EcdsaP521AffinePoint = AffinePoint<NistP521>;
+
+    pub type EcdsaP521PublicKey = PublicKey<NistP521>;
+
+    // pub type EcdsaP521PublicCoordinate = GenericArray<u8, U32>;
+    pub type EcdsaP521PublicEncodedPoint = EncodedPoint<NistP521>;
+
+    pub type EcdsaP521SigningKey = SigningKey<NistP521>;
+    pub type EcdsaP521VerifyingKey = VerifyingKey<NistP521>;
+
+    pub type EcdsaP521Signature = Signature<NistP521>;
+    pub type EcdsaP521DerSignature = DerSignature;
+    pub type EcdsaP521SignatureBytes = SignatureBytes<NistP521>;
+
+    pub fn new_key() -> EcdsaP521PrivateKey {
+        let mut rng = rand::thread_rng();
+        EcdsaP521PrivateKey::random(&mut rng)
+    }
+
+    pub fn from_coords_raw(x: &[u8], y: &[u8]) -> Option<EcdsaP521PublicKey> {
+        let mut field_x = EcdsaP521FieldBytes::default();
+        if x.len() != field_x.len() {
+            return None;
+        }
+
+        let mut field_y = EcdsaP521FieldBytes::default();
+        if y.len() != field_y.len() {
+            return None;
+        }
+
+        field_x.copy_from_slice(x);
+        field_y.copy_from_slice(y);
+
+        let ep = EcdsaP521PublicEncodedPoint::from_affine_coordinates(&field_x, &field_y, false);
+
+        EcdsaP521PublicKey::from_encoded_point(&ep).into_option()
+    }
 }
 
 pub mod nist_sp800_108_kdf_hmac_sha256 {
     use crate::traits::Zeroizing;
-    use digest_pre::consts::*;
     use crypto_common_pre::KeySizeUser;
+    use digest_pre::consts::*;
     use hmac_pre::Hmac;
     use kbkdf::{Counter, Kbkdf, Params};
     use sha2_pre::Sha256;
