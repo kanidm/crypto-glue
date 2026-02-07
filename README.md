@@ -1,4 +1,9 @@
-# Crypto Glue - Now Safe for Human Consumption!
+# Crypto Glue - Now Safe for Human Consumption! &emsp; [![Latest Version]][crates.io] [![Latest Docs]][githubdocs]
+
+[Latest Version]: https://img.shields.io/crates/v/crypto_glue.svg
+[crates.io]: https://crates.io/crates/crypto_glue
+[Latest Docs]: https://github.com/kanidm/crypto-glue/actions/workflows/docs.yml/badge.svg?branch=main
+[githubdocs]: https://kanidm.github.io/crypto-glue/crypto_glue/
 
 This is a glue crate that combines the rustcrypto ecosystem into a single place.
 
