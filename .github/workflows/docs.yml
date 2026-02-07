@@ -20,8 +20,8 @@ jobs:
       - name: Build documentation
         id: build
         env:
-          RUSTDOCFLAGS: -Z unstable-options --enable-index-page --html-before-content ./api-docs/before_content.html --extend-css ./api-docs/style.css
-        run: cargo doc
+          RUSTDOCFLAGS: -Z unstable-options --enable-index-page --html-before-content "${{ github.workspace }}/api-docs/before_content.html" --extend-css "${{ github.workspace }}/api-docs/style.css"
+        run: cargo doc -p crypto-glue
 
       - name: Upload static files as artifact
         id: deployment
