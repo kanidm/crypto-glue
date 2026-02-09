@@ -1,17 +1,24 @@
 pub use self::chain::{X509Store, X509VerificationError};
 pub use self::display::X509Display;
+use crate::{
+    ecdsa_p256::{EcdsaP256PublicKey, EcdsaP256Signature, EcdsaP256VerifyingKey},
+    ecdsa_p384::{EcdsaP384PublicKey, EcdsaP384Signature, EcdsaP384VerifyingKey},
+    rsa::{RS256PublicKey, RS256Signature, RS256VerifyingKey},
+    s256::{Sha256, Sha256Output},
+    traits::{Digest, EncodeDer, OwnedToRef, Verifier},
+};
 pub use const_oid::db as oiddb;
 pub use const_oid::{AssociatedOid, ObjectIdentifier};
 pub use der::asn1::{BitString, Ia5String};
+use tracing::error;
 pub use x509_cert::builder::RequestBuilder as CertificateRequestBuilder;
 pub use x509_cert::builder::{Builder, CertificateBuilder, Profile};
 pub use x509_cert::certificate::{Certificate, Version};
-pub use x509_cert::ext::pkix::name::{GeneralName, OtherName, DistributionPointName};
+pub use x509_cert::ext::pkix::name::{DistributionPointName, GeneralName, OtherName};
 pub use x509_cert::ext::pkix::{
-    AuthorityKeyIdentifier, BasicConstraints, ExtendedKeyUsage, KeyUsage, KeyUsages,
-    SubjectAltName, SubjectKeyIdentifier, AuthorityInfoAccessSyntax, AccessDescription,
-    crl::dp::DistributionPoint,
-    crl::CrlDistributionPoints,
+    crl::dp::DistributionPoint, crl::CrlDistributionPoints, AccessDescription,
+    AuthorityInfoAccessSyntax, AuthorityKeyIdentifier, BasicConstraints, ExtendedKeyUsage,
+    KeyUsage, KeyUsages, SubjectAltName, SubjectKeyIdentifier,
 };
 pub use x509_cert::name::Name;
 pub use x509_cert::request::CertReq as CertificateRequest;
@@ -20,14 +27,6 @@ pub use x509_cert::spki::{
     AlgorithmIdentifier, SignatureBitStringEncoding, SubjectPublicKeyInfoOwned,
 };
 pub use x509_cert::time::{Time, Validity};
-
-use crate::{
-    ecdsa_p256::{EcdsaP256PublicKey, EcdsaP256Signature, EcdsaP256VerifyingKey},
-    ecdsa_p384::{EcdsaP384PublicKey, EcdsaP384Signature, EcdsaP384VerifyingKey},
-    rsa::{RS256PublicKey, RS256Signature, RS256VerifyingKey},
-    traits::{OwnedToRef, Verifier},
-};
-use tracing::error;
 
 mod chain;
 mod display;
@@ -44,6 +43,12 @@ pub fn uuid_to_serial(serial_uuid: uuid::Uuid) -> SerialNumber {
     SerialNumber::new(&serial_bytes).expect("Failed to create serial number from uuid")
 }
 
+pub fn x509_digest_sha256(certificate: &Certificate) -> Result<Sha256Output, der::Error> {
+    let mut hasher = Sha256::new();
+    hasher.update(certificate.to_der()?);
+    Ok(hasher.finalize())
+}
+
 pub fn x509_verify_signature(
     data: &[u8],
     signature: &[u8],
@@ -54,9 +59,9 @@ pub fn x509_verify_signature(
         .subject_public_key_info
         .owned_to_ref();
 
-    match certificate.tbs_certificate.signature.oid {
-        oiddb::rfc5912::ECDSA_WITH_SHA_256 => {
-            let signature = EcdsaP256Signature::try_from(signature)
+    match subject_public_key_info.algorithm.oids() {
+        Ok((oiddb::rfc5912::ID_EC_PUBLIC_KEY, Some(oiddb::rfc5912::SECP_256_R_1))) => {
+            let signature = EcdsaP256Signature::from_der(signature)
                 .map_err(|_err| X509VerificationError::DerSignatureInvalid)?;
 
             let verifier = EcdsaP256PublicKey::try_from(subject_public_key_info)
@@ -67,8 +72,8 @@ pub fn x509_verify_signature(
                 .verify(data, &signature)
                 .map_err(|_err| X509VerificationError::SignatureVerificationFailed)?;
         }
-        oiddb::rfc5912::ECDSA_WITH_SHA_384 => {
-            let signature = EcdsaP384Signature::try_from(signature)
+        Ok((oiddb::rfc5912::ID_EC_PUBLIC_KEY, Some(oiddb::rfc5912::SECP_384_R_1))) => {
+            let signature = EcdsaP384Signature::from_der(signature)
                 .map_err(|_err| X509VerificationError::DerSignatureInvalid)?;
 
             let verifier = EcdsaP384PublicKey::try_from(subject_public_key_info)
@@ -79,7 +84,7 @@ pub fn x509_verify_signature(
                 .verify(data, &signature)
                 .map_err(|_err| X509VerificationError::SignatureVerificationFailed)?;
         }
-        oiddb::rfc5912::SHA_256_WITH_RSA_ENCRYPTION => {
+        Ok((oiddb::rfc5912::SHA_256_WITH_RSA_ENCRYPTION, None)) => {
             let signature = RS256Signature::try_from(signature)
                 .map_err(|_err| X509VerificationError::DerSignatureInvalid)?;
 
@@ -91,8 +96,8 @@ pub fn x509_verify_signature(
                 .verify(data, &signature)
                 .map_err(|_err| X509VerificationError::SignatureVerificationFailed)?;
         }
-        algo_oid => {
-            error!(?algo_oid);
+        algo_oids => {
+            error!(?algo_oids);
             return Err(X509VerificationError::SignatureAlgorithmNotImplemented);
         }
     }
