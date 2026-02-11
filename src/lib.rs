@@ -37,7 +37,7 @@ pub mod traits {
     pub use der::{
         referenced::OwnedToRef, Decode as DecodeDer, DecodePem, Encode as EncodeDer, EncodePem,
     };
-    pub use elliptic_curve::sec1::FromEncodedPoint;
+    pub use elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
     pub use hmac::Mac;
     pub use pkcs8::{
         DecodePrivateKey as Pkcs8DecodePrivateKey, EncodePrivateKey as Pkcs8EncodePrivateKey,
