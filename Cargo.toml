@@ -1,7 +1,7 @@
 [package]
 name = "crypto-glue"
 description = "A facade over the RustCrypto ecosystem"
-version = "0.1.12"
+version = "0.1.13"
 edition = "2021"
 license = "MPL-2.0"
 homepage = "https://github.com/kanidm/crypto-glue/"
@@ -26,7 +26,7 @@ crypto-common = { version = "=0.1", features = ["rand_core"] }
 der = "0.7.9"
 # dhkem = "0.0.1-alpha"
 ecdsa = "0.16"
-elliptic-curve = { version = "0.13", features = ["arithmetic"] }
+elliptic-curve = { version = "0.13", features = ["arithmetic", "sec1"] }
 spki = "0.7.3"
 hex = "0.4.3"
 hkdf = "0.12.4"
