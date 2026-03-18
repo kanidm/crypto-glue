@@ -71,6 +71,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c7f02d4ea65f2c1853089ffd8d2787bdbc63de2f0d29dedbcf8ccdfa0ccd4cf"
 
 [[package]]
+name = "base64"
+version = "0.22.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
+
+[[package]]
 name = "base64ct"
 version = "1.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -228,12 +234,13 @@ dependencies = [
 
 [[package]]
 name = "crypto-glue"
-version = "0.1.13"
+version = "0.1.14"
 dependencies = [
  "aes",
  "aes-gcm",
  "aes-kw",
  "argon2",
+ "base64",
  "cbc",
  "cipher",
  "const-oid",
@@ -253,12 +260,14 @@ dependencies = [
  "p256",
  "p384",
  "p521",
+ "pbkdf2",
  "pkcs8",
  "rand",
  "rsa",
  "rustls",
  "rustls-rustcrypto",
  "sec1",
+ "serde",
  "sha1",
  "sha2 0.10.9",
  "sha2 0.11.0-rc.5",
@@ -718,6 +727,16 @@ name = "paste"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
+
+[[package]]
+name = "pbkdf2"
+version = "0.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8ed6a7761f76e3b9f92dfb0a60a6a6477c61024b775147ff0973a02653abaf2"
+dependencies = [
+ "digest 0.10.7",
+ "hmac 0.12.1",
+]
 
 [[package]]
 name = "pem-rfc7468"

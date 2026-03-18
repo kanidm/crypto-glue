@@ -21,6 +21,7 @@ pub use argon2;
 pub use cipher::block_padding;
 pub use der;
 pub use hex;
+pub use pbkdf2;
 pub use rand;
 pub use spki;
 pub use zeroize;
@@ -35,10 +36,11 @@ pub mod traits {
     pub use crypto_common::KeyInit;
     pub use crypto_common::OutputSizeUser;
     pub use der::{
-        referenced::OwnedToRef, Decode as DecodeDer, DecodePem, Encode as EncodeDer, EncodePem,
+        pem::LineEnding as LineEndingPem, referenced::OwnedToRef, Decode as DecodeDer, DecodePem,
+        Encode as EncodeDer, EncodePem,
     };
     pub use elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
-    pub use hmac::Mac;
+    pub use hmac::{Hmac, Mac};
     pub use pkcs8::{
         DecodePrivateKey as Pkcs8DecodePrivateKey, EncodePrivateKey as Pkcs8EncodePrivateKey,
     };
@@ -53,7 +55,8 @@ pub mod traits {
     pub use rsa::traits::PublicKeyParts;
     pub use sha2::Digest;
     pub use spki::{
-        DecodePublicKey as SpkiDecodePublicKey, EncodePublicKey as SpkiEncodePublicKey,
+        DecodePublicKey as SpkiDecodePublicKey, DynSignatureAlgorithmIdentifier,
+        EncodePublicKey as SpkiEncodePublicKey,
     };
     pub use zeroize::Zeroizing;
     pub mod hazmat {
@@ -83,11 +86,87 @@ pub mod s256 {
     pub type Sha256Output = GenericArray<u8, U32>;
 }
 
+pub mod s384 {
+    use generic_array::GenericArray;
+    use sha2::digest::consts::U48;
+
+    pub use sha2::Sha384;
+
+    pub type Sha384Output = GenericArray<u8, U48>;
+}
+
+pub mod s512 {
+    use generic_array::GenericArray;
+    use sha2::digest::consts::U64;
+
+    pub use sha2::Sha512;
+
+    pub type Sha512Output = GenericArray<u8, U64>;
+}
+
 pub mod hkdf_s256 {
     use hkdf::Hkdf;
     use sha2::Sha256;
 
     pub type HkdfSha256 = Hkdf<Sha256>;
+}
+
+pub mod hmac_s1 {
+    use crypto_common::Key;
+    use crypto_common::Output;
+
+    use hmac::Hmac;
+    use hmac::Mac;
+    use sha1::digest::CtOutput;
+    use sha1::Sha1;
+    use zeroize::Zeroizing;
+
+    pub type HmacSha1 = Hmac<Sha1>;
+
+    pub type HmacSha1Key = Zeroizing<Key<Hmac<Sha1>>>;
+
+    pub type HmacSha1Output = CtOutput<HmacSha1>;
+
+    pub type HmacSha1Bytes = Output<HmacSha1>;
+
+    pub fn new_key() -> HmacSha1Key {
+        use crypto_common::KeyInit;
+
+        let mut rng = rand::thread_rng();
+        HmacSha1::generate_key(&mut rng).into()
+    }
+
+    pub fn oneshot(key: &HmacSha1Key, data: &[u8]) -> HmacSha1Output {
+        let mut hmac = HmacSha1::new(key);
+        hmac.update(data);
+        hmac.finalize()
+    }
+
+    pub fn key_from_vec(bytes: Vec<u8>) -> Option<HmacSha1Key> {
+        key_from_slice(&bytes)
+    }
+
+    pub fn key_from_slice(bytes: &[u8]) -> Option<HmacSha1Key> {
+        use crypto_common::KeySizeUser;
+        // Key too short - too long.
+        if bytes.len() < 16 || bytes.len() > Hmac::<Sha1>::key_size() {
+            None
+        } else {
+            let mut key = Key::<Hmac<Sha1>>::default();
+            let key_ref = &mut key.as_mut_slice()[..bytes.len()];
+            key_ref.copy_from_slice(bytes);
+            Some(key.into())
+        }
+    }
+
+    pub fn key_from_bytes(bytes: [u8; 64]) -> HmacSha1Key {
+        Key::<Hmac<Sha1>>::from(bytes).into()
+    }
+
+    pub fn key_size() -> usize {
+        use crypto_common::KeySizeUser;
+        Hmac::<Sha1>::key_size()
+    }
 }
 
 pub mod hmac_s256 {
@@ -126,8 +205,9 @@ pub mod hmac_s256 {
     }
 
     pub fn key_from_slice(bytes: &[u8]) -> Option<HmacSha256Key> {
+        use crypto_common::KeySizeUser;
         // Key too short - too long.
-        if bytes.len() < 16 || bytes.len() > 64 {
+        if bytes.len() < 16 || bytes.len() > Hmac::<Sha256>::key_size() {
             None
         } else {
             let mut key = Key::<Hmac<Sha256>>::default();
@@ -177,6 +257,24 @@ pub mod hmac_s512 {
         let mut hmac = HmacSha512::new(key);
         hmac.update(data);
         hmac.finalize()
+    }
+
+    pub fn key_from_slice(bytes: &[u8]) -> Option<HmacSha512Key> {
+        use crypto_common::KeySizeUser;
+        // Key too short - too long.
+        if bytes.len() < 16 || bytes.len() > Hmac::<Sha512>::key_size() {
+            None
+        } else {
+            let mut key = Key::<Hmac<Sha512>>::default();
+            let key_ref = &mut key.as_mut_slice()[..bytes.len()];
+            key_ref.copy_from_slice(bytes);
+            Some(key.into())
+        }
+    }
+
+    pub fn key_size() -> usize {
+        use crypto_common::KeySizeUser;
+        Hmac::<Sha512>::key_size()
     }
 }
 
