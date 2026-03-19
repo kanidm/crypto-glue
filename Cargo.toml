@@ -37,7 +37,7 @@ p256 = { version = "0.13", features = ["ecdh", "pem"] }
 p384 = "0.13"
 p521 = "0.13"
 pbkdf2 = "0.12"
-pkcs8 = "0.10.2"
+pkcs8 = { version = "0.10.2", features = ["encryption"] }
 rand = "0.8.4"
 rsa = { version = "0.9.10", features = ["sha2", "pem"] }
 
