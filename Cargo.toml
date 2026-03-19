@@ -1,7 +1,7 @@
 [package]
 name = "crypto-glue"
 description = "A facade over the RustCrypto ecosystem"
-version = "0.1.14"
+version = "0.1.15"
 edition = "2021"
 license = "MPL-2.0"
 homepage = "https://github.com/kanidm/crypto-glue/"
@@ -20,6 +20,7 @@ aes = "0.8.1"
 aes-gcm = "0.10.3"
 aes-kw = "0.2.1"
 argon2 = { version = "0.5.2" }
+base64 = { version = "^0.22.1" }
 cbc = "0.1.2"
 cipher = { version = "0.4", features = ["block-padding", "alloc"] }
 crypto-common = { version = "=0.1", features = ["rand_core"] }
@@ -35,7 +36,8 @@ hmac = "0.12"
 p256 = { version = "0.13", features = ["ecdh", "pem"] }
 p384 = "0.13"
 p521 = "0.13"
-pkcs8 = "0.10.2"
+pbkdf2 = "0.12"
+pkcs8 = { version = "0.10.2", features = ["encryption"] }
 rand = "0.8.4"
 rsa = { version = "0.9.10", features = ["sha2", "pem"] }
 
@@ -44,6 +46,7 @@ sec1 = "0.7.3"
 x509-cert = { version = "0.2", features = ["builder", "hazmat"] }
 const-oid = "0.9"
 
+serde = "^1.0.228"
 sha1 = "0.10"
 sha2 = "0.10"
 subtle = "^2.6.1"
