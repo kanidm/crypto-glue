@@ -1,7 +1,7 @@
 [package]
 name = "crypto-glue"
 description = "A facade over the RustCrypto ecosystem"
-version = "0.1.15"
+version = "0.1.16"
 edition = "2021"
 license = "MPL-2.0"
 homepage = "https://github.com/kanidm/crypto-glue/"
@@ -67,7 +67,8 @@ uuid = { version = "1", features = ["v4"] }
 kbkdf = { version = "0.1.0-rc.1" }
 hmac-pre = { package = "hmac", version = "0.13.0-rc.5", default-features = false }
 sha2-pre = { package = "sha2", version = "0.11.0-rc.5", default-features = false }
-digest-pre = { package = "digest", version = "0.11.0-rc.11", default-features = false, features = ["mac"] }
+# https://github.com/RustCrypto/password-hashes/issues/856
+digest-pre = { package = "digest", version = "=0.11.0-rc.12", default-features = false, features = ["mac"] }
 crypto-common-pre = { package = "crypto-common", version = "0.2.0-rc.15", features = ["rand_core"] }
 
 [dev-dependencies]
