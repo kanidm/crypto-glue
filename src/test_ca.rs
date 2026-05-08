@@ -46,7 +46,8 @@ pub(crate) fn build_test_ca_root(
     };
 
     let profile = Profile::Root;
-    let root_subject = Name::from_str("CN=Oh no he is writing a CA,O=Pls Help,C=AU").unwrap();
+    let root_subject = Name::from_str("CN=Oh no he is writing a CA,O=Pls Help,C=AU")
+        .expect("static root CA subject name should be valid");
 
     let signing_key = SigningKey::random(&mut rng);
     let verifying_key = VerifyingKey::from(&signing_key); // Serialize with `::to_encoded_point()`
@@ -65,7 +66,10 @@ pub(crate) fn build_test_ca_root(
     let dist_points = vec![DistributionPoint {
         distribution_point: Some(DistributionPointName::FullName(vec![
             GeneralName::UniformResourceIdentifier(
-                "https://example.com/crl".to_string().try_into().unwrap(),
+                "https://example.com/crl"
+                    .to_string()
+                    .try_into()
+                    .expect("static root CRL URI should be valid"),
             ),
         ])),
         reasons: None,
@@ -78,15 +82,23 @@ pub(crate) fn build_test_ca_root(
         .add_extension(&crl_extension)
         .expect("Unable to add extension");
 
-    let cert = builder.build_with_rng::<DerSignature>(&mut rng).unwrap();
+    let cert = builder
+        .build_with_rng::<DerSignature>(&mut rng)
+        .expect("failed to build root CA certificate");
 
-    // let cert_der = cert.to_der().unwrap();
+    // let cert_der = cert.to_der().expect("failed to encode root CA certificate as DER");
     println!("{:?}", cert);
 
-    let cert_bytes = cert.tbs_certificate.to_der().unwrap();
+    let cert_bytes = cert
+        .tbs_certificate
+        .to_der()
+        .expect("failed to encode root CA TBS certificate as DER");
 
-    let byte_sig: &[u8] = cert.signature.as_bytes().unwrap();
-    let cert_sig = DerSignature::try_from(byte_sig).unwrap();
+    let byte_sig: &[u8] = cert
+        .signature
+        .as_bytes()
+        .expect("root CA signature should be byte-aligned");
+    let cert_sig = DerSignature::try_from(byte_sig).expect("failed to parse root CA DER signature");
     assert!(verifying_key.verify(&cert_bytes, &cert_sig).is_ok());
 
     // For a root cert we must validate
@@ -148,8 +160,8 @@ pub(crate) fn build_test_ca_root(
     //   Serial Number - We have to drop the first byte.
     println!("{:?}", &cert.tbs_certificate.serial_number.as_bytes()[1..]);
     println!("{:?}", root_serial_uuid.as_bytes());
-    let verify_serial =
-        Uuid::from_slice(&cert.tbs_certificate.serial_number.as_bytes()[1..]).unwrap();
+    let verify_serial = Uuid::from_slice(&cert.tbs_certificate.serial_number.as_bytes()[1..])
+        .expect("failed to parse root CA certificate serial number as UUID");
 
     assert_eq!(root_serial_uuid, verify_serial);
 
@@ -185,7 +197,8 @@ pub(crate) fn build_test_ca_int(
     }
 
     println!("{:?}", serial_bytes);
-    let serial_number = SerialNumber::new(&serial_bytes).unwrap();
+    let serial_number =
+        SerialNumber::new(&serial_bytes).expect("intermediate serial number should be valid");
 
     let validity = Validity {
         not_before,
@@ -196,7 +209,8 @@ pub(crate) fn build_test_ca_int(
         issuer: root_ca_cert.tbs_certificate.subject.clone(),
         path_len_constraint: Some(0),
     };
-    let int_subject = Name::from_str("CN=Oh no its an intermediate,C=AU").unwrap();
+    let int_subject = Name::from_str("CN=Oh no its an intermediate,C=AU")
+        .expect("static intermediate CA subject name should be valid");
 
     let int_signing_key = SigningKey::random(&mut rng);
     let int_verifying_key = VerifyingKey::from(&int_signing_key); // Serialize with `::to_encoded_point()`
@@ -219,7 +233,7 @@ pub(crate) fn build_test_ca_int(
                 "https://example.com/int/crl"
                     .to_string()
                     .try_into()
-                    .unwrap(),
+                    .expect("static intermediate CRL URI should be valid"),
             ),
         ])),
         reasons: None,
@@ -234,7 +248,12 @@ pub(crate) fn build_test_ca_int(
 
     let name_constraint_extension = NameConstraints {
         permitted_subtrees: Some(vec![GeneralSubtree {
-            base: GeneralName::DnsName("example.com".to_string().try_into().unwrap()),
+            base: GeneralName::DnsName(
+                "example.com"
+                    .to_string()
+                    .try_into()
+                    .expect("static intermediate DNS name constraint should be valid"),
+            ),
             minimum: 0,
             maximum: None,
         }]),
@@ -245,15 +264,26 @@ pub(crate) fn build_test_ca_int(
         .add_extension(&name_constraint_extension)
         .expect("Unable to add extension");
 
-    let int_cert = builder.build_with_rng::<DerSignature>(&mut rng).unwrap();
+    let int_cert = builder
+        .build_with_rng::<DerSignature>(&mut rng)
+        .expect("failed to build intermediate CA certificate");
 
-    // let cert_der = int_cert.to_der().unwrap();
+    // let cert_der = int_cert
+    //     .to_der()
+    //     .expect("failed to encode intermediate CA certificate as DER");
     println!("{:?}", int_cert);
 
-    let cert_bytes = int_cert.tbs_certificate.to_der().unwrap();
+    let cert_bytes = int_cert
+        .tbs_certificate
+        .to_der()
+        .expect("failed to encode intermediate CA TBS certificate as DER");
 
-    let byte_sig: &[u8] = int_cert.signature.as_bytes().unwrap();
-    let cert_sig = DerSignature::try_from(byte_sig).unwrap();
+    let byte_sig: &[u8] = int_cert
+        .signature
+        .as_bytes()
+        .expect("intermediate CA signature should be byte-aligned");
+    let cert_sig =
+        DerSignature::try_from(byte_sig).expect("failed to parse intermediate CA DER signature");
     assert!(root_verifying_key.verify(&cert_bytes, &cert_sig).is_ok());
 
     // Intermediate:
@@ -314,7 +344,10 @@ pub(crate) fn build_test_ca_int(
     eprintln!("{:?}", authority_key_id);
 
     assert_eq!(
-        authority_key_id.key_identifier.as_ref().unwrap(),
+        authority_key_id
+            .key_identifier
+            .as_ref()
+            .expect("intermediate CA should include authority key identifier"),
         root_subject_key_id.as_ref()
     );
 
@@ -360,8 +393,8 @@ pub(crate) fn build_test_ca_int(
         &int_cert.tbs_certificate.serial_number.as_bytes()[1..]
     );
     println!("{:?}", int_serial_uuid.as_bytes());
-    let verify_serial =
-        Uuid::from_slice(&int_cert.tbs_certificate.serial_number.as_bytes()[1..]).unwrap();
+    let verify_serial = Uuid::from_slice(&int_cert.tbs_certificate.serial_number.as_bytes()[1..])
+        .expect("failed to parse intermediate CA certificate serial number as UUID");
 
     assert_eq!(int_serial_uuid, verify_serial);
 
@@ -384,9 +417,13 @@ pub(crate) fn build_test_csr(subject: &Name) -> (SigningKey, CertReq) {
     let builder = RequestBuilder::new(subject.clone(), &client_signing_key)
         .expect("Create certificate request");
 
-    let client_cert_req = builder.build_with_rng::<DerSignature>(&mut rng).unwrap();
+    let client_cert_req = builder
+        .build_with_rng::<DerSignature>(&mut rng)
+        .expect("failed to build client certificate request");
 
-    let client_cert_req_der = client_cert_req.to_der().unwrap();
+    let client_cert_req_der = client_cert_req
+        .to_der()
+        .expect("failed to encode client certificate request as DER");
     println!("{:?}", client_cert_req_der);
 
     // First, extract the public key from the cert and use it to self-verify
@@ -397,16 +434,27 @@ pub(crate) fn build_test_csr(subject: &Name) -> (SigningKey, CertReq) {
     println!("--> {:?}", &spki);
 
     let extracted_public_key = VerifyingKey::from_public_key_der(
-        // spki.subject_public_key.as_bytes().unwrap()
-        spki.to_der().unwrap().as_slice(),
+        // spki.subject_public_key
+        //     .as_bytes()
+        //     .expect("client CSR subject public key should be byte-aligned")
+        spki.to_der()
+            .expect("failed to encode client CSR public key as DER")
+            .as_slice(),
     )
     .expect("Unable to parse key bytes");
     assert_eq!(extracted_public_key, client_verifying_key);
 
-    let req_bytes = client_cert_req.info.to_der().unwrap();
+    let req_bytes = client_cert_req
+        .info
+        .to_der()
+        .expect("failed to encode client CSR info as DER");
 
-    let byte_sig: &[u8] = client_cert_req.signature.as_bytes().unwrap();
-    let client_cert_req_sig = DerSignature::try_from(byte_sig).unwrap();
+    let byte_sig: &[u8] = client_cert_req
+        .signature
+        .as_bytes()
+        .expect("client CSR signature should be byte-aligned");
+    let client_cert_req_sig =
+        DerSignature::try_from(byte_sig).expect("failed to parse client CSR DER signature");
     assert!(extracted_public_key
         .verify(&req_bytes, &client_cert_req_sig)
         .is_ok());
@@ -441,7 +489,8 @@ pub(crate) fn test_ca_sign_client_csr(
     }
 
     println!("{:?}", serial_bytes);
-    let serial_number = SerialNumber::new(&serial_bytes).unwrap();
+    let serial_number =
+        SerialNumber::new(&serial_bytes).expect("client certificate serial number should be valid");
 
     let validity = Validity {
         not_before,
@@ -477,7 +526,8 @@ pub(crate) fn test_ca_sign_client_csr(
         .add_extension(&eku_extension)
         .expect("Unable to add extension");
 
-    let alt_name = Name::from_str("ENTRYUUID=cb98d3d3-efcc-4675-ad40-435f6280d41b").unwrap();
+    let alt_name = Name::from_str("ENTRYUUID=cb98d3d3-efcc-4675-ad40-435f6280d41b")
+        .expect("static client certificate directoryName SAN should be valid");
 
     let san = SubjectAltName(vec![GeneralName::DirectoryName(alt_name)]);
 
@@ -485,9 +535,13 @@ pub(crate) fn test_ca_sign_client_csr(
         .add_extension(&san)
         .expect("Unable to add extension");
 
-    let client_cert = builder.build_with_rng::<DerSignature>(&mut rng).unwrap();
+    let client_cert = builder
+        .build_with_rng::<DerSignature>(&mut rng)
+        .expect("failed to build client certificate");
 
-    // let client_cert_der = client_cert.to_der().unwrap();
+    // let client_cert_der = client_cert
+    //     .to_der()
+    //     .expect("failed to encode client certificate as DER");
     println!("{:?}", client_cert);
 
     // Client Leaf Cert
@@ -553,7 +607,10 @@ pub(crate) fn test_ca_sign_client_csr(
         .expect("key usage not present");
 
     assert_eq!(
-        authority_key_id.key_identifier.as_ref().unwrap(),
+        authority_key_id
+            .key_identifier
+            .as_ref()
+            .expect("client certificate should include authority key identifier"),
         int_subject_key_id.as_ref()
     );
 
@@ -601,7 +658,8 @@ pub(crate) fn test_ca_sign_client_csr(
     );
     println!("{:?}", client_serial_uuid.as_bytes());
     let verify_serial =
-        Uuid::from_slice(&client_cert.tbs_certificate.serial_number.as_bytes()[1..]).unwrap();
+        Uuid::from_slice(&client_cert.tbs_certificate.serial_number.as_bytes()[1..])
+            .expect("failed to parse client certificate serial number as UUID");
 
     assert_eq!(client_serial_uuid, verify_serial);
     //   Subject
@@ -634,7 +692,8 @@ pub(crate) fn test_ca_sign_server_csr(
     }
 
     println!("{:?}", serial_bytes);
-    let serial_number = SerialNumber::new(&serial_bytes).unwrap();
+    let serial_number =
+        SerialNumber::new(&serial_bytes).expect("server certificate serial number should be valid");
 
     let validity = Validity {
         not_before,
@@ -670,7 +729,7 @@ pub(crate) fn test_ca_sign_server_csr(
         .add_extension(&eku_extension)
         .expect("Unable to add extension");
 
-    let alt_name = Ia5String::new("localhost").unwrap();
+    let alt_name = Ia5String::new("localhost").expect("static server DNS SAN should be valid");
 
     let san = SubjectAltName(vec![GeneralName::DnsName(alt_name)]);
 
@@ -682,7 +741,9 @@ pub(crate) fn test_ca_sign_server_csr(
         .build_with_rng::<DerSignature>(&mut rng)
         .expect("Failed to build server certificate");
 
-    // let server_cert_der = server_cert.to_der().unwrap();
+    // let server_cert_der = server_cert
+    //     .to_der()
+    //     .expect("failed to encode server certificate as DER");
     println!("{:?}", server_cert);
 
     // VALIDATION NOW
