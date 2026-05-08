@@ -678,7 +678,9 @@ pub(crate) fn test_ca_sign_server_csr(
         .add_extension(&san)
         .expect("Unable to add extension");
 
-    let server_cert = builder.build_with_rng::<DerSignature>(&mut rng).unwrap();
+    let server_cert = builder
+        .build_with_rng::<DerSignature>(&mut rng)
+        .expect("Failed to build server certificate");
 
     // let server_cert_der = server_cert.to_der().unwrap();
     println!("{:?}", server_cert);
@@ -751,7 +753,10 @@ pub(crate) fn test_ca_sign_server_csr(
         .expect("key usage not present");
 
     assert_eq!(
-        authority_key_id.key_identifier.as_ref().unwrap(),
+        authority_key_id
+            .key_identifier
+            .as_ref()
+            .expect("Failed to get authority key identifier"),
         int_subject_key_id.as_ref()
     );
 
@@ -799,7 +804,8 @@ pub(crate) fn test_ca_sign_server_csr(
     );
     println!("{:?}", server_serial_uuid.as_bytes());
     let verify_serial =
-        Uuid::from_slice(&server_cert.tbs_certificate.serial_number.as_bytes()[1..]).unwrap();
+        Uuid::from_slice(&server_cert.tbs_certificate.serial_number.as_bytes()[1..])
+            .expect("Failed to parse server certificate serial number");
 
     assert_eq!(server_serial_uuid, verify_serial);
     //   Subject
@@ -811,8 +817,9 @@ pub(crate) fn test_ca_sign_server_csr(
 #[test]
 fn test_ca_build_process() {
     let now = SystemTime::now();
-    let not_before = Time::try_from(now).unwrap();
-    let not_after = Time::try_from(now + Duration::new(3600, 0)).unwrap();
+    let not_before = Time::try_from(now).expect("Failed to convert SystemTime to Time");
+    let not_after =
+        Time::try_from(now + Duration::new(3600, 0)).expect("Failed to convert SystemTime to Time");
 
     let (root_signing_key, root_ca_cert) = build_test_ca_root(not_before, not_after);
 
@@ -823,7 +830,7 @@ fn test_ca_build_process() {
 
     // =========================================================================================
 
-    let subject = Name::from_str("CN=multi pass").unwrap();
+    let subject = Name::from_str("CN=multi pass").expect("Failed to parse subject name");
 
     let (_client_key, client_csr) = build_test_csr(&subject);
 
@@ -837,7 +844,7 @@ fn test_ca_build_process() {
 
     // =========================================================================================
 
-    let subject = Name::from_str("CN=localhost").unwrap();
+    let subject = Name::from_str("CN=localhost").expect("Failed to parse subject name");
 
     let (_server_key, server_csr) = build_test_csr(&subject);
 
