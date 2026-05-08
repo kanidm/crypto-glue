@@ -998,6 +998,7 @@ mod tests {
         eprintln!("{:?}", priv_key_info);
     }
 
+    #[cfg(any(unix, windows))]
     #[test]
     fn rustls_mtls_basic() {
         use crate::test_ca::*;
@@ -1012,12 +1013,15 @@ mod tests {
         };
         use std::io::Read;
         use std::io::Write;
+        #[cfg(unix)]
         use std::os::unix::net::UnixStream;
         use std::str::FromStr;
         use std::sync::atomic::{AtomicU16, Ordering};
         use std::sync::Arc;
         use std::time::Duration;
         use std::time::SystemTime;
+        #[cfg(windows)]
+        use uds_windows::UnixStream;
         use x509_cert::der::Encode;
         use x509_cert::name::Name;
         use x509_cert::time::Time;
