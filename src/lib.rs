@@ -142,6 +142,7 @@ pub mod hmac_s1 {
         hmac.finalize()
     }
 
+    #[allow(clippy::needless_pass_by_value)]
     pub fn key_from_vec(bytes: Vec<u8>) -> Option<HmacSha1Key> {
         key_from_slice(&bytes)
     }
@@ -200,6 +201,7 @@ pub mod hmac_s256 {
         hmac.finalize()
     }
 
+    #[allow(clippy::needless_pass_by_value)]
     pub fn key_from_vec(bytes: Vec<u8>) -> Option<HmacSha256Key> {
         key_from_slice(&bytes)
     }
@@ -1119,7 +1121,10 @@ mod tests {
             .unwrap();
 
         let mut buf: [u8; 5] = [0; 5];
-        server_connection.reader().read(&mut buf).unwrap();
+        server_connection
+            .reader()
+            .read_exact(&mut buf)
+            .expect("Failed to read data");
 
         assert_eq!(&buf, b"hello");
 
