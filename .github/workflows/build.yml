@@ -58,7 +58,7 @@ jobs:
         run: cargo test
 
   wasm:
-    name: wasm
+    name: WASM
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -82,5 +82,5 @@ jobs:
       - name: Test on Chromium
         run: wasm-pack test --headless --chrome
 
-      - name: Test on firefox
+      - name: Test on Firefox
         run: wasm-pack test --headless --firefox
