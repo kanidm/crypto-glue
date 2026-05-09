@@ -55,9 +55,7 @@ pub fn now() -> SystemTime {
         }
 
         let now = now().unwrap_throw() as u64;
-        UNIX_EPOCH
-            .checked_add(Duration::from_millis(now))
-            .unwrap()
+        UNIX_EPOCH.checked_add(Duration::from_millis(now)).unwrap()
     }
 
     #[cfg(not(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none"))))]
