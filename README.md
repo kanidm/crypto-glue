@@ -20,3 +20,12 @@ pkcs8 crate as a trait, and without it in scope the documentation won't show me 
 
 Generally this means if you want something from the rustcrypto ecosystem, you can reach for your
 glue bottle instead, and trust that it has nice type aliases and all the features you need.
+
+## Platform-specific notes
+
+### WASM
+
+The default Rust `wasm32-unknown-unknown` target does not provide sources of time or entropy, which
+some of this crate's dependencies require.
+
+See [`Cargo.toml`](./Cargo.toml) for a list for WASM+JS (browser and Node.js) environments.
