@@ -1010,7 +1010,7 @@ mod tests {
         let priv_key_info = PrivateKeyInfo::try_from(ecdsa_priv_key_der.as_bytes())
             .expect("Failed to parse private key info");
 
-        eprintln!("{:?}", priv_key_info);
+        eprintln!("{priv_key_info:?}");
     }
 
     #[cfg(any(unix, windows))]

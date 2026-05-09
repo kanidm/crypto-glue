@@ -87,7 +87,7 @@ pub(crate) fn build_test_ca_root(
         .expect("failed to build root CA certificate");
 
     // let cert_der = cert.to_der().expect("failed to encode root CA certificate as DER");
-    println!("{:?}", cert);
+    println!("{cert:?}");
 
     let cert_bytes = cert
         .tbs_certificate
@@ -112,7 +112,7 @@ pub(crate) fn build_test_ca_root(
         .expect("basic constraints not present");
 
     assert!(critical);
-    eprintln!("{:?}", basic_constraints);
+    eprintln!("{basic_constraints:?}");
 
     assert!(basic_constraints.ca);
     assert!(basic_constraints.path_len_constraint.is_none());
@@ -129,7 +129,7 @@ pub(crate) fn build_test_ca_root(
 
     assert!(critical);
 
-    eprintln!("{:?}", key_usage);
+    eprintln!("{key_usage:?}");
     let expected_key_usages = KeyUsages::KeyCertSign | KeyUsages::CRLSign;
     assert_eq!(key_usage, expected_key_usages.into());
 
@@ -141,7 +141,7 @@ pub(crate) fn build_test_ca_root(
         .expect("failed to get extensions")
         .expect("key usage not present");
 
-    eprintln!("{:?}", ca_subject_key_id);
+    eprintln!("{ca_subject_key_id:?}");
 
     //   Validity
     assert_eq!(
@@ -196,7 +196,7 @@ pub(crate) fn build_test_ca_int(
         update_bytes.copy_from_slice(int_serial_uuid.as_bytes());
     }
 
-    println!("{:?}", serial_bytes);
+    println!("{serial_bytes:?}");
     let serial_number =
         SerialNumber::new(&serial_bytes).expect("intermediate serial number should be valid");
 
@@ -271,7 +271,7 @@ pub(crate) fn build_test_ca_int(
     // let cert_der = int_cert
     //     .to_der()
     //     .expect("failed to encode intermediate CA certificate as DER");
-    println!("{:?}", int_cert);
+    println!("{int_cert:?}");
 
     let cert_bytes = int_cert
         .tbs_certificate
@@ -299,7 +299,7 @@ pub(crate) fn build_test_ca_int(
 
     assert!(critical);
 
-    eprintln!("{:?}", basic_constraints);
+    eprintln!("{basic_constraints:?}");
 
     assert!(basic_constraints.ca);
     assert_eq!(basic_constraints.path_len_constraint, Some(0));
@@ -317,7 +317,7 @@ pub(crate) fn build_test_ca_int(
 
     assert!(critical);
 
-    eprintln!("{:?}", key_usage);
+    eprintln!("{key_usage:?}");
     let expected_key_usages = KeyUsages::KeyCertSign | KeyUsages::CRLSign;
     assert_eq!(key_usage, expected_key_usages.into());
 
@@ -341,7 +341,7 @@ pub(crate) fn build_test_ca_int(
         .expect("failed to get extensions")
         .expect("key usage not present");
 
-    eprintln!("{:?}", authority_key_id);
+    eprintln!("{authority_key_id:?}");
 
     assert_eq!(
         authority_key_id
@@ -358,7 +358,7 @@ pub(crate) fn build_test_ca_int(
         .expect("failed to get extensions")
         .expect("key usage not present");
 
-    eprintln!("{:?}", int_subject_key_id);
+    eprintln!("{int_subject_key_id:?}");
 
     //   Validity
     assert_eq!(
@@ -424,7 +424,7 @@ pub(crate) fn build_test_csr(subject: &Name) -> (SigningKey, CertReq) {
     let client_cert_req_der = client_cert_req
         .to_der()
         .expect("failed to encode client certificate request as DER");
-    println!("{:?}", client_cert_req_der);
+    println!("{client_cert_req_der:?}");
 
     // First, extract the public key from the cert and use it to self-verify
 
@@ -488,7 +488,7 @@ pub(crate) fn test_ca_sign_client_csr(
         update_bytes.copy_from_slice(client_serial_uuid.as_bytes());
     }
 
-    println!("{:?}", serial_bytes);
+    println!("{serial_bytes:?}");
     let serial_number =
         SerialNumber::new(&serial_bytes).expect("client certificate serial number should be valid");
 
@@ -542,7 +542,7 @@ pub(crate) fn test_ca_sign_client_csr(
     // let client_cert_der = client_cert
     //     .to_der()
     //     .expect("failed to encode client certificate as DER");
-    println!("{:?}", client_cert);
+    println!("{client_cert:?}");
 
     // Client Leaf Cert
     //   Basic Constraints: critical
@@ -555,7 +555,7 @@ pub(crate) fn test_ca_sign_client_csr(
         .expect("basic constraints not present");
 
     assert!(critical);
-    eprintln!("{:?}", basic_constraints);
+    eprintln!("{basic_constraints:?}");
 
     assert!(!basic_constraints.ca);
 
@@ -572,7 +572,7 @@ pub(crate) fn test_ca_sign_client_csr(
 
     assert!(critical);
 
-    eprintln!("{:?}", key_usage);
+    eprintln!("{key_usage:?}");
     let expected_key_usages =
         KeyUsages::DigitalSignature | KeyUsages::NonRepudiation | KeyUsages::KeyEncipherment;
     assert_eq!(key_usage, expected_key_usages.into());
@@ -597,7 +597,7 @@ pub(crate) fn test_ca_sign_client_csr(
         .expect("failed to get extensions")
         .expect("key usage not present");
 
-    eprintln!("{:?}", authority_key_id);
+    eprintln!("{authority_key_id:?}");
 
     //   Subject Key ID
     let (_, int_subject_key_id) = ca_cert
@@ -621,7 +621,7 @@ pub(crate) fn test_ca_sign_client_csr(
         .expect("failed to get extensions")
         .expect("key usage not present");
 
-    eprintln!("{:?}", client_subject_key_id);
+    eprintln!("{client_subject_key_id:?}");
 
     //   Validity
     assert_eq!(
@@ -691,7 +691,7 @@ pub(crate) fn test_ca_sign_server_csr(
         update_bytes.copy_from_slice(server_serial_uuid.as_bytes());
     }
 
-    println!("{:?}", serial_bytes);
+    println!("{serial_bytes:?}");
     let serial_number =
         SerialNumber::new(&serial_bytes).expect("server certificate serial number should be valid");
 
@@ -744,7 +744,7 @@ pub(crate) fn test_ca_sign_server_csr(
     // let server_cert_der = server_cert
     //     .to_der()
     //     .expect("failed to encode server certificate as DER");
-    println!("{:?}", server_cert);
+    println!("{server_cert:?}");
 
     // VALIDATION NOW
 
@@ -759,7 +759,7 @@ pub(crate) fn test_ca_sign_server_csr(
         .expect("basic constraints not present");
 
     assert!(critical);
-    eprintln!("{:?}", basic_constraints);
+    eprintln!("{basic_constraints:?}");
 
     assert!(!basic_constraints.ca);
 
@@ -777,7 +777,7 @@ pub(crate) fn test_ca_sign_server_csr(
 
     assert!(critical);
 
-    eprintln!("{:?}", key_usage);
+    eprintln!("{key_usage:?}");
     let expected_key_usages = KeyUsages::DigitalSignature
         | KeyUsages::NonRepudiation
         | KeyUsages::KeyAgreement
@@ -804,7 +804,7 @@ pub(crate) fn test_ca_sign_server_csr(
         .expect("failed to get extensions")
         .expect("key usage not present");
 
-    eprintln!("{:?}", authority_key_id);
+    eprintln!("{authority_key_id:?}");
 
     //   Subject Key ID
     let (_, int_subject_key_id) = ca_cert
@@ -828,7 +828,7 @@ pub(crate) fn test_ca_sign_server_csr(
         .expect("failed to get extensions")
         .expect("key usage not present");
 
-    eprintln!("{:?}", server_subject_key_id);
+    eprintln!("{server_subject_key_id:?}");
 
     //   Validity
     assert_eq!(
