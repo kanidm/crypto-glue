@@ -332,7 +332,7 @@ impl fmt::Display for X509Display<'_> {
                             &const_oid::db::rfc5280::ID_KP_CODE_SIGNING => {
                                 writeln!(f, "Code Signing")?
                             }
-                            oid => writeln!(f, "OID= {:?}", oid)?,
+                            oid => writeln!(f, "OID= {oid:?}")?,
                         }
                     }
                 }
