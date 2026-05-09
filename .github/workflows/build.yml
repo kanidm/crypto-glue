@@ -62,15 +62,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-    env:
-      SCCACHE_GHA_ENABLED: "false"
-      RUSTC_WRAPPER: ""
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
           targets: wasm32-unknown-unknown
+      - uses: mozilla-actions/sccache-action@v0.0.10
 
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
