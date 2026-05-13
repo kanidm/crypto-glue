@@ -56,3 +56,29 @@ jobs:
 
       - name: test
         run: cargo test
+
+  wasm:
+    name: WASM
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          targets: wasm32-unknown-unknown
+      - uses: mozilla-actions/sccache-action@v0.0.10
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      # Building the tests as we don't want to unconditionally use sources of
+      # time and entropy for WASM+JS environments.
+      - run: cargo build --target wasm32-unknown-unknown --tests
+
+      - name: Test on Chromium
+        run: wasm-pack test --headless --chrome
+
+      - name: Test on Firefox
+        run: wasm-pack test --headless --firefox

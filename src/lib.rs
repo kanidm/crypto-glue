@@ -767,7 +767,16 @@ pub mod pkcs8 {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
+    use wasm_bindgen_test::*;
+    #[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
+    wasm_bindgen_test_configure!(run_in_browser);
+
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn sha256_basic() {
         use crate::s256::*;
         use crate::traits::*;
@@ -780,6 +789,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn hmac_256_basic() {
         use crate::hmac_s256::*;
         use crate::traits::Mac;
@@ -794,6 +807,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn hmac_512_basic() {
         use crate::hmac_s512::*;
 
@@ -807,6 +824,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn aes256gcm_basic() {
         use crate::aes256;
         use crate::aes256gcm::*;
@@ -849,6 +870,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn aes256cbc_basic() {
         use crate::aes256;
         use crate::aes256cbc::{self, *};
@@ -870,6 +895,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn aes256cbc_hmac_basic() {
         use crate::aes256;
         use crate::aes256cbc::{self, block_padding};
@@ -887,6 +916,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn aes256kw_basic() {
         use crate::aes256;
         use crate::aes256kw::*;
@@ -913,6 +946,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn rsa_basic() {
         use crate::rsa::*;
         use crate::traits::*;
@@ -946,6 +983,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn ecdsa_p256_basic() {
         use crate::ecdsa_p256::*;
         use crate::traits::*;
@@ -976,6 +1017,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn ecdh_p256_basic() {
         use crate::ecdh_p256::*;
 
@@ -995,6 +1040,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn pkcs8_handling_test() {
         use crate::ecdsa_p256;
         use crate::traits::Pkcs8EncodePrivateKey;
@@ -1034,7 +1083,6 @@ mod tests {
         use std::sync::atomic::{AtomicU16, Ordering};
         use std::sync::Arc;
         use std::time::Duration;
-        use std::time::SystemTime;
         #[cfg(windows)]
         use uds_windows::UnixStream;
         use x509_cert::der::Encode;
@@ -1044,7 +1092,7 @@ mod tests {
         // ========================
         // CA SETUP
 
-        let now = SystemTime::now();
+        let now = now();
         let not_before = Time::try_from(now).expect("Failed to convert system time to X509 time");
         let not_after = Time::try_from(now + Duration::new(3600, 0))
             .expect("Failed to convert system time to X509 time");

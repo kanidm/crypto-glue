@@ -31,6 +31,37 @@ use p384::ecdsa::{DerSignature, SigningKey};
 use crate::x509::uuid_to_serial;
 use uuid::Uuid;
 
+#[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
+use wasm_bindgen_test::*;
+#[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
+wasm_bindgen_test_configure!(run_in_browser);
+
+/// [`SystemTime::now`][] equivalent that uses `Date.now()` on WASM.
+#[cfg_attr(
+    not(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none"))),
+    inline
+)]
+pub fn now() -> SystemTime {
+    #[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
+    {
+        use std::time::{Duration, UNIX_EPOCH};
+        use wasm_bindgen::prelude::*;
+
+        #[wasm_bindgen]
+        extern "C" {
+            // NOTE: This signature works around https://bugzilla.mozilla.org/show_bug.cgi?id=1787770
+            #[wasm_bindgen(js_namespace = Date, catch)]
+            fn now() -> Result<f64, JsValue>;
+        }
+
+        let now = now().unwrap_throw() as u64;
+        UNIX_EPOCH.checked_add(Duration::from_millis(now)).unwrap()
+    }
+
+    #[cfg(not(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none"))))]
+    SystemTime::now()
+}
+
 pub(crate) fn build_test_ca_root(
     not_before: Time,
     not_after: Time,
@@ -876,8 +907,12 @@ pub(crate) fn test_ca_sign_server_csr(
 }
 
 #[test]
+#[cfg_attr(
+    all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+    wasm_bindgen_test
+)]
 fn test_ca_build_process() {
-    let now = SystemTime::now();
+    let now = now();
     let not_before = Time::try_from(now).expect("Failed to convert SystemTime to Time");
     let not_after =
         Time::try_from(now + Duration::new(3600, 0)).expect("Failed to convert SystemTime to Time");

@@ -398,11 +398,20 @@ mod tests {
     use std::time::Duration;
     use std::time::SystemTime;
 
+    #[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
+    use wasm_bindgen_test::*;
+    #[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
+    wasm_bindgen_test_configure!(run_in_browser);
+
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn x509_chain_verify_basic() {
         let _ = tracing_subscriber::fmt::try_init();
 
-        let now = SystemTime::now();
+        let now = now();
         let not_before = Time::try_from(now).expect("Failed to convert SystemTime to Time");
         let not_after = Time::try_from(now + Duration::new(3600, 0))
             .expect("Failed to convert SystemTime to Time");
@@ -457,6 +466,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn x509_chain_verify_rsa_fido_mds() {
         let _ = tracing_subscriber::fmt::try_init();
 
@@ -481,6 +494,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn x509_chain_verify_rsa_yubico_u2f() {
         let _ = tracing_subscriber::fmt::try_init();
 
@@ -491,7 +508,7 @@ mod tests {
 
         let ca_store = X509Store::new(&[yubico_u2f_root_cert]);
 
-        let now = SystemTime::now();
+        let now = now();
         let leaf = &yubico_device_attest;
         let chain = [];
 
