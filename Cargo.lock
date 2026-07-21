@@ -234,7 +234,7 @@ dependencies = [
 
 [[package]]
 name = "crypto-glue"
-version = "0.1.15"
+version = "0.1.16"
 dependencies = [
  "aes",
  "aes-gcm",
@@ -247,7 +247,7 @@ dependencies = [
  "crypto-common 0.1.7",
  "crypto-common 0.2.0",
  "der",
- "digest 0.11.0-rc.11",
+ "digest 0.11.0-rc.12",
  "ecdsa",
  "elliptic-curve",
  "generic-array",
@@ -354,9 +354,9 @@ dependencies = [
 
 [[package]]
 name = "digest"
-version = "0.11.0-rc.11"
+version = "0.11.0-rc.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02b42f1d9edf5207c137646b568a0168ca0ec25b7f9eaf7f9961da51a3d91cea"
+checksum = "d4b37eb2004a3548553a44cc1e688aac70f0345b896c9d822b4a0e520bc9183b"
 dependencies = [
  "block-buffer 0.11.0",
  "crypto-common 0.2.0",
@@ -536,7 +536,7 @@ version = "0.13.0-rc.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ef451d73f36d8a3f93ad32c332ea01146c9650e1ec821a9b0e46c01277d544f8"
 dependencies = [
- "digest 0.11.0-rc.11",
+ "digest 0.11.0-rc.12",
 ]
 
 [[package]]
@@ -576,7 +576,7 @@ version = "0.1.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90ac93c9768b8d587407881c98b0c3a5d3e3049daa73408ebe5bfb1ab1cb9c84"
 dependencies = [
- "digest 0.11.0-rc.11",
+ "digest 0.11.0-rc.12",
 ]
 
 [[package]]
@@ -1125,7 +1125,7 @@ checksum = "7c5f3b1e2dc8aad28310d8410bd4d7e180eca65fca176c52ab00d364475d0024"
 dependencies = [
  "cfg-if",
  "cpufeatures",
- "digest 0.11.0-rc.11",
+ "digest 0.11.0-rc.12",
 ]
 
 [[package]]
