@@ -142,6 +142,7 @@ pub mod hmac_s1 {
         hmac.finalize()
     }
 
+    #[allow(clippy::needless_pass_by_value)]
     pub fn key_from_vec(bytes: Vec<u8>) -> Option<HmacSha1Key> {
         key_from_slice(&bytes)
     }
@@ -200,6 +201,7 @@ pub mod hmac_s256 {
         hmac.finalize()
     }
 
+    #[allow(clippy::needless_pass_by_value)]
     pub fn key_from_vec(bytes: Vec<u8>) -> Option<HmacSha256Key> {
         key_from_slice(&bytes)
     }
@@ -765,7 +767,16 @@ pub mod pkcs8 {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
+    use wasm_bindgen_test::*;
+    #[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
+    wasm_bindgen_test_configure!(run_in_browser);
+
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn sha256_basic() {
         use crate::s256::*;
         use crate::traits::*;
@@ -778,6 +789,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn hmac_256_basic() {
         use crate::hmac_s256::*;
         use crate::traits::Mac;
@@ -792,6 +807,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn hmac_512_basic() {
         use crate::hmac_s512::*;
 
@@ -805,6 +824,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn aes256gcm_basic() {
         use crate::aes256;
         use crate::aes256gcm::*;
@@ -818,8 +841,10 @@ mod tests {
         // These are the "basic" encrypt/decrypt which postfixs a tag.
         let ciphertext = cipher
             .encrypt(&nonce, b"plaintext message".as_ref())
-            .unwrap();
-        let plaintext = cipher.decrypt(&nonce, ciphertext.as_ref()).unwrap();
+            .expect("Failed to encrypt message");
+        let plaintext = cipher
+            .decrypt(&nonce, ciphertext.as_ref())
+            .expect("Failed to decrypt message");
 
         assert_eq!(&plaintext, b"plaintext message");
 
@@ -835,16 +860,20 @@ mod tests {
 
         let tag = cipher
             .encrypt_in_place_detached(&nonce, associated_data, buffer.as_mut_slice())
-            .unwrap();
+            .expect("Failed to encrypt message");
 
         cipher
             .decrypt_in_place_detached(&nonce, associated_data, &mut buffer, &tag)
-            .unwrap();
+            .expect("Failed to decrypt message");
 
         assert_eq!(buffer, b"test message, super cool");
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn aes256cbc_basic() {
         use crate::aes256;
         use crate::aes256cbc::{self, *};
@@ -866,6 +895,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn aes256cbc_hmac_basic() {
         use crate::aes256;
         use crate::aes256cbc::{self, block_padding};
@@ -873,15 +906,20 @@ mod tests {
         let key = aes256::new_key();
 
         let (mac, iv, ciphertext) =
-            aes256cbc::enc::<block_padding::Pkcs7>(&key, b"plaintext message").unwrap();
+            aes256cbc::enc::<block_padding::Pkcs7>(&key, b"plaintext message")
+                .expect("Failed to encrypt message");
 
-        let plaintext =
-            aes256cbc::dec::<block_padding::Pkcs7>(&key, &mac, &iv, &ciphertext).unwrap();
+        let plaintext = aes256cbc::dec::<block_padding::Pkcs7>(&key, &mac, &iv, &ciphertext)
+            .expect("Failed to decrypt message");
 
         assert_eq!(plaintext, b"plaintext message");
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn aes256kw_basic() {
         use crate::aes256;
         use crate::aes256kw::*;
@@ -893,30 +931,39 @@ mod tests {
         let mut wrapped_key = Aes256KwWrapped::default();
 
         // Wrap it.
-        key_wrap.wrap(&key_to_wrap, &mut wrapped_key).unwrap();
+        key_wrap
+            .wrap(&key_to_wrap, &mut wrapped_key)
+            .expect("Failed to wrap key");
         // Reverse the process
 
         let mut key_unwrapped = aes256::Aes256Key::default();
 
-        key_wrap.unwrap(&wrapped_key, &mut key_unwrapped).unwrap();
+        key_wrap
+            .unwrap(&wrapped_key, &mut key_unwrapped)
+            .expect("Failed to unwrap key");
 
         assert_eq!(key_to_wrap, key_unwrapped);
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn rsa_basic() {
         use crate::rsa::*;
         use crate::traits::*;
 
-        let pkey = new_key(MIN_BITS).unwrap();
+        let pkey = new_key(MIN_BITS).expect("Failed to generate RSA key");
 
         let pubkey = RS256PublicKey::from(&pkey);
 
         // OAEP
 
-        let ciphertext = oaep_sha256_encrypt(&pubkey, b"this is a message").unwrap();
+        let ciphertext =
+            oaep_sha256_encrypt(&pubkey, b"this is a message").expect("Failed to encrypt message");
 
-        let plaintext = oaep_sha256_decrypt(&pkey, &ciphertext).unwrap();
+        let plaintext = oaep_sha256_decrypt(&pkey, &ciphertext).expect("Failed to decrypt message");
 
         assert_eq!(plaintext, b"this is a message");
 
@@ -936,6 +983,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn ecdsa_p256_basic() {
         use crate::ecdsa_p256::*;
         use crate::traits::*;
@@ -950,7 +1001,7 @@ mod tests {
         // Can either sign data directly, using the correct associated hash type.
         let data = [0, 1, 2, 3, 4, 5, 6, 7];
 
-        let sig: EcdsaP256Signature = signer.try_sign(&data).unwrap();
+        let sig: EcdsaP256Signature = signer.try_sign(&data).expect("Failed to sign data");
 
         assert!(verifier.verify(&data, &sig).is_ok());
 
@@ -959,11 +1010,17 @@ mod tests {
         let mut digest = EcdsaP256Digest::new();
         digest.update(data);
 
-        let sig: EcdsaP256Signature = signer.try_sign_digest(digest).unwrap();
+        let sig: EcdsaP256Signature = signer
+            .try_sign_digest(digest)
+            .expect("Failed to sign digest");
         assert!(verifier.verify(&data, &sig).is_ok());
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn ecdh_p256_basic() {
         use crate::ecdh_p256::*;
 
@@ -983,6 +1040,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn pkcs8_handling_test() {
         use crate::ecdsa_p256;
         use crate::traits::Pkcs8EncodePrivateKey;
@@ -991,13 +1052,17 @@ mod tests {
         use pkcs8::PrivateKeyInfo;
 
         let ecdsa_priv_key = ecdsa_p256::new_key();
-        let ecdsa_priv_key_der = ecdsa_priv_key.to_pkcs8_der().unwrap();
+        let ecdsa_priv_key_der = ecdsa_priv_key
+            .to_pkcs8_der()
+            .expect("Failed to encode ECDSA private key");
 
-        let priv_key_info = PrivateKeyInfo::try_from(ecdsa_priv_key_der.as_bytes()).unwrap();
+        let priv_key_info = PrivateKeyInfo::try_from(ecdsa_priv_key_der.as_bytes())
+            .expect("Failed to parse private key info");
 
-        eprintln!("{:?}", priv_key_info);
+        eprintln!("{priv_key_info:?}");
     }
 
+    #[cfg(any(unix, windows))]
     #[test]
     fn rustls_mtls_basic() {
         use crate::test_ca::*;
@@ -1012,12 +1077,14 @@ mod tests {
         };
         use std::io::Read;
         use std::io::Write;
+        #[cfg(unix)]
         use std::os::unix::net::UnixStream;
         use std::str::FromStr;
         use std::sync::atomic::{AtomicU16, Ordering};
         use std::sync::Arc;
         use std::time::Duration;
-        use std::time::SystemTime;
+        #[cfg(windows)]
+        use uds_windows::UnixStream;
         use x509_cert::der::Encode;
         use x509_cert::name::Name;
         use x509_cert::time::Time;
@@ -1025,15 +1092,16 @@ mod tests {
         // ========================
         // CA SETUP
 
-        let now = SystemTime::now();
-        let not_before = Time::try_from(now).unwrap();
-        let not_after = Time::try_from(now + Duration::new(3600, 0)).unwrap();
+        let now = now();
+        let not_before = Time::try_from(now).expect("Failed to convert system time to X509 time");
+        let not_after = Time::try_from(now + Duration::new(3600, 0))
+            .expect("Failed to convert system time to X509 time");
 
         let (root_signing_key, root_ca_cert) = build_test_ca_root(not_before, not_after);
 
         eprintln!("{}", X509Display::from(&root_ca_cert));
 
-        let subject = Name::from_str("CN=localhost").unwrap();
+        let subject = Name::from_str("CN=localhost").expect("Failed to parse subject name");
 
         let (server_key, server_csr) = build_test_csr(&subject);
 
@@ -1049,16 +1117,22 @@ mod tests {
 
         // ========================
         use p384::pkcs8::EncodePrivateKey;
-        let server_private_key_pkcs8_der = SecretKey::from(server_key).to_pkcs8_der().unwrap();
+        let server_private_key_pkcs8_der = SecretKey::from(server_key)
+            .to_pkcs8_der()
+            .expect("Failed to encode server private key");
 
-        let root_ca_cert_der = root_ca_cert.to_der().unwrap();
-        let server_cert_der = server_cert.to_der().unwrap();
+        let root_ca_cert_der = root_ca_cert
+            .to_der()
+            .expect("Failed to encode root CA certificate");
+        let server_cert_der = server_cert
+            .to_der()
+            .expect("Failed to encode server certificate");
 
         let mut ca_roots = RootCertStore::empty();
 
         ca_roots
             .add(CertificateDer::from(root_ca_cert_der.clone()))
-            .unwrap();
+            .expect("Failed to add root CA certificate");
 
         let server_chain = vec![
             CertificateDer::from(server_cert_der),
@@ -1072,14 +1146,14 @@ mod tests {
 
         let client_tls_config: Arc<_> = ClientConfig::builder_with_provider(provider.clone())
             .with_safe_default_protocol_versions()
-            .unwrap()
+            .expect("invalid protocol versions")
             .with_root_certificates(ca_roots)
             .with_no_client_auth()
             .into();
 
         let server_tls_config: Arc<_> = ServerConfig::builder_with_provider(provider)
             .with_safe_default_protocol_versions()
-            .unwrap()
+            .expect("invalid protocol versions")
             .with_no_client_auth()
             .with_single_cert(server_chain, server_private_key)
             .map(Arc::new)
@@ -1087,19 +1161,20 @@ mod tests {
 
         let server_name = ServerName::try_from("localhost").expect("invalid DNS name");
 
-        let (mut server_unix_stream, mut client_unix_stream) = UnixStream::pair().unwrap();
+        let (mut server_unix_stream, mut client_unix_stream) =
+            UnixStream::pair().expect("Failed to create UnixStream pair");
 
         let atomic = Arc::new(AtomicU16::new(0));
 
         let atomic_t = atomic.clone();
 
         let handle = std::thread::spawn(move || {
-            let mut client_connection =
-                ClientConnection::new(client_tls_config, server_name).unwrap();
+            let mut client_connection = ClientConnection::new(client_tls_config, server_name)
+                .expect("Failed to create client connection");
 
             let mut client = rustls::Stream::new(&mut client_connection, &mut client_unix_stream);
 
-            client.write_all(b"hello").unwrap();
+            client.write_all(b"hello").expect("Failed to write data");
 
             while atomic_t.load(Ordering::Relaxed) != 1 {
                 std::thread::sleep(std::time::Duration::from_millis(1));
@@ -1108,24 +1183,28 @@ mod tests {
             println!("THREAD DONE");
         });
 
-        let mut server_connection = ServerConnection::new(server_tls_config).unwrap();
+        let mut server_connection =
+            ServerConnection::new(server_tls_config).expect("Failed to create server connection");
 
         server_connection
             .complete_io(&mut server_unix_stream)
-            .unwrap();
+            .expect("Failed to complete TLS handshake");
 
         server_connection
             .complete_io(&mut server_unix_stream)
-            .unwrap();
+            .expect("Failed to complete TLS handshake");
 
         let mut buf: [u8; 5] = [0; 5];
-        server_connection.reader().read(&mut buf).unwrap();
+        server_connection
+            .reader()
+            .read_exact(&mut buf)
+            .expect("Failed to read data");
 
         assert_eq!(&buf, b"hello");
 
         atomic.store(1, Ordering::Relaxed);
 
         // If the thread paniced, this will panic.
-        handle.join().unwrap();
+        handle.join().expect("Thread panicked");
     }
 }

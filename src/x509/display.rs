@@ -130,7 +130,7 @@ impl fmt::Display for X509Display<'_> {
             &const_oid::db::rfc5912::SHA_256_WITH_RSA_ENCRYPTION => {
                 writeln!(f, "sha256-with-rsa-encryption")?
             }
-            oid => writeln!(f, "OID= {:?}", oid)?,
+            oid => writeln!(f, "OID= {oid:?}")?,
         }
 
         // SUBJECT PUBLIC KEY
@@ -332,7 +332,7 @@ impl fmt::Display for X509Display<'_> {
                             &const_oid::db::rfc5280::ID_KP_CODE_SIGNING => {
                                 writeln!(f, "Code Signing")?
                             }
-                            oid => writeln!(f, "OID= {:?}", oid)?,
+                            oid => writeln!(f, "OID= {oid:?}")?,
                         }
                     }
                 }
@@ -367,9 +367,8 @@ impl fmt::Display for X509Display<'_> {
                     // Probably in RFC5280
                     writeln!(
                         f,
-                        "{:indent$}Unknown Extension: OID= {:?}",
+                        "{:indent$}Unknown Extension: OID= {oid:?}",
                         "",
-                        oid,
                         indent = INDENT_TWO
                     )?
                 }
@@ -384,7 +383,7 @@ impl fmt::Display for X509Display<'_> {
             &const_oid::db::rfc5912::SHA_256_WITH_RSA_ENCRYPTION => {
                 writeln!(f, "sha256-with-rsa-encryption")?
             }
-            oid => writeln!(f, "OID= {:?}", oid)?,
+            oid => writeln!(f, "OID= {oid:?}")?,
         }
 
         writeln!(f, "{:indent$}Signature:", "", indent = INDENT)?;
@@ -418,7 +417,7 @@ impl fmt::Display for BytesDisplay<'_> {
 
         let mut count = 0;
         while let Some(byte) = iter.next() {
-            write!(f, "{:02x}", byte)?;
+            write!(f, "{byte:02x}")?;
 
             count += 1;
 
@@ -498,7 +497,7 @@ impl fmt::Display for SubjectPublicKeyDisplay<'_> {
 
         match alg_oid {
             &const_oid::db::rfc5912::ID_EC_PUBLIC_KEY => writeln!(f, "id-ec-public-key")?,
-            oid => writeln!(f, "OID= {:?}", oid)?,
+            oid => writeln!(f, "OID= {oid:?}")?,
         }
 
         if let Ok(param_oid) = self.spki.algorithm.parameters_oid() {
@@ -506,7 +505,7 @@ impl fmt::Display for SubjectPublicKeyDisplay<'_> {
             match param_oid {
                 const_oid::db::rfc5912::SECP_384_R_1 => writeln!(f, "SEC P384 R1")?,
                 const_oid::db::rfc5912::SECP_256_R_1 => writeln!(f, "SEC P256 R1")?,
-                oid => writeln!(f, "OID= {:?}", oid)?,
+                oid => writeln!(f, "OID= {oid:?}")?,
             }
         }
 

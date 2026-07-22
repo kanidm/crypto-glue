@@ -398,20 +398,30 @@ mod tests {
     use std::time::Duration;
     use std::time::SystemTime;
 
+    #[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
+    use wasm_bindgen_test::*;
+    #[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
+    wasm_bindgen_test_configure!(run_in_browser);
+
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn x509_chain_verify_basic() {
         let _ = tracing_subscriber::fmt::try_init();
 
-        let now = SystemTime::now();
-        let not_before = Time::try_from(now).unwrap();
-        let not_after = Time::try_from(now + Duration::new(3600, 0)).unwrap();
+        let now = now();
+        let not_before = Time::try_from(now).expect("Failed to convert SystemTime to Time");
+        let not_after = Time::try_from(now + Duration::new(3600, 0))
+            .expect("Failed to convert SystemTime to Time");
 
         let (root_signing_key, root_ca_cert) = build_test_ca_root(not_before, not_after);
 
         let (int_signing_key, int_ca_cert) =
             build_test_ca_int(not_before, not_after, &root_signing_key, &root_ca_cert);
 
-        let subject = Name::from_str("CN=localhost").unwrap();
+        let subject = Name::from_str("CN=localhost").expect("Failed to parse subject name");
         let (server_key, server_csr) = build_test_csr(&subject);
 
         let server_cert = test_ca_sign_server_csr(
@@ -448,17 +458,24 @@ mod tests {
 
         let verifier = EcdsaP384PublicKey::try_from(subject_public_key_info)
             .map(EcdsaP384VerifyingKey::from)
-            .unwrap();
+            .expect("Failed to create EcdsaP384VerifyingKey");
 
-        verifier.verify(&test_data, &test_data_signature).unwrap();
+        verifier
+            .verify(&test_data, &test_data_signature)
+            .expect("Failed to verify test data signature");
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn x509_chain_verify_rsa_fido_mds() {
         let _ = tracing_subscriber::fmt::try_init();
 
-        let global_sign_root_cert = Certificate::from_pem(GLOBAL_SIGN_ROOT).unwrap();
-        let mds_cert = Certificate::from_pem(FIDO_MDS).unwrap();
+        let global_sign_root_cert =
+            Certificate::from_pem(GLOBAL_SIGN_ROOT).expect("Failed to parse GlobalSign Root cert");
+        let mds_cert = Certificate::from_pem(FIDO_MDS).expect("Failed to parse FIDO MDS cert");
 
         let ca_store = X509Store::new(&[global_sign_root_cert]);
 
@@ -477,15 +494,21 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")),
+        wasm_bindgen_test
+    )]
     fn x509_chain_verify_rsa_yubico_u2f() {
         let _ = tracing_subscriber::fmt::try_init();
 
-        let yubico_u2f_root_cert = Certificate::from_pem(YUBICO_U2F_ROOT).unwrap();
-        let yubico_device_attest = Certificate::from_pem(YUBICO_DEVICE_ATTEST).unwrap();
+        let yubico_u2f_root_cert =
+            Certificate::from_pem(YUBICO_U2F_ROOT).expect("Failed to parse Yubico U2F Root cert");
+        let yubico_device_attest = Certificate::from_pem(YUBICO_DEVICE_ATTEST)
+            .expect("Failed to parse Yubico Device Attest cert");
 
         let ca_store = X509Store::new(&[yubico_u2f_root_cert]);
 
-        let now = SystemTime::now();
+        let now = now();
         let leaf = &yubico_device_attest;
         let chain = [];
 
