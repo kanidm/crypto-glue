@@ -99,7 +99,8 @@ pub fn x509_verify_signature(
                 .verify(data, &signature)
                 .map_err(|_err| X509VerificationError::SignatureVerificationFailed)?;
         }
-        Ok((oiddb::rfc5912::SHA_256_WITH_RSA_ENCRYPTION, None)) => {
+        Ok((oiddb::rfc5912::RSA_ENCRYPTION, None))
+        | Ok((oiddb::rfc5912::SHA_256_WITH_RSA_ENCRYPTION, None)) => {
             let signature = RS256Signature::try_from(signature)
                 .map_err(|_err| X509VerificationError::DerSignatureInvalid)?;
 
