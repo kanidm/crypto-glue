@@ -410,7 +410,7 @@ pub mod aes256cbc {
     pub use crate::aes256::Aes256Key;
 
     pub use aes::cipher::{block_padding, KeyIvInit};
-    // BlockDecryptMut, BlockEncryptMut, 
+    // BlockDecryptMut, BlockEncryptMut,
 
     pub type Aes256CbcEnc = cbc::Encryptor<aes::Aes256>;
     pub type Aes256CbcDec = cbc::Decryptor<aes::Aes256>;
@@ -556,7 +556,7 @@ pub mod ecdh_p256 {
 }
 
 pub mod ecdsa_p256 {
-    // use ecdsa::hazmat::DigestPrimitive;
+    use ecdsa::DigestAlgorithm;
     use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
     use elliptic_curve::point::AffinePoint;
     use elliptic_curve::scalar::NonZeroScalar;
@@ -568,7 +568,7 @@ pub mod ecdsa_p256 {
     use p256::{ecdsa::DerSignature, NistP256};
     use sha2::digest::consts::U32;
 
-    pub type EcdsaP256Digest = <NistP256 as DigestPrimitive>::Digest;
+    pub type EcdsaP256Digest = <NistP256 as DigestAlgorithm>::Digest;
 
     pub type EcdsaP256PrivateKey = SecretKey<NistP256>;
     pub type EcdsaP256NonZeroScalar = NonZeroScalar<NistP256>;
@@ -615,7 +615,7 @@ pub mod ecdsa_p256 {
 }
 
 pub mod ecdsa_p384 {
-    // use ecdsa::hazmat::DigestPrimitive;
+    use ecdsa::DigestAlgorithm;
     use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
     use elliptic_curve::point::AffinePoint;
     use elliptic_curve::sec1::FromSec1Point;
@@ -625,7 +625,7 @@ pub mod ecdsa_p384 {
     use p384::{ecdsa::DerSignature, NistP384};
     // use sha2::digest::consts::U32;
 
-    pub type EcdsaP384Digest = <NistP384 as DigestPrimitive>::Digest;
+    pub type EcdsaP384Digest = <NistP384 as DigestAlgorithm>::Digest;
 
     pub type EcdsaP384PrivateKey = SecretKey<NistP384>;
 
@@ -670,7 +670,7 @@ pub mod ecdsa_p384 {
 }
 
 pub mod ecdsa_p521 {
-    // use ecdsa::hazmat::DigestPrimitive;
+    use ecdsa::DigestAlgorithm;
     use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
     use elliptic_curve::point::AffinePoint;
     use elliptic_curve::sec1::FromSec1Point;
@@ -680,7 +680,7 @@ pub mod ecdsa_p521 {
     use p521::{ecdsa::DerSignature, NistP521};
     // use sha2::digest::consts::U32;
 
-    pub type EcdsaP521Digest = <NistP521 as DigestPrimitive>::Digest;
+    pub type EcdsaP521Digest = <NistP521 as DigestAlgorithm>::Digest;
 
     pub type EcdsaP521PrivateKey = SecretKey<NistP521>;
 
