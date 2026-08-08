@@ -48,9 +48,9 @@ pub fn uuid_to_serial(serial_uuid: uuid::Uuid) -> SerialNumber {
 
 pub fn x509_digest_public_key_sha256(certificate: &Certificate) -> Option<Sha256Output> {
     let public_key_bytes = certificate
-        .tbs_certificate
-        .subject_public_key_info
-        .subject_public_key
+        .tbs_certificate()
+        .subject_public_key_info()
+        .subject_public_key()
         .as_bytes()?;
 
     let mut hasher = Sha256::new();
@@ -70,11 +70,11 @@ pub fn x509_verify_signature(
     certificate: &Certificate,
 ) -> Result<(), X509VerificationError> {
     let subject_public_key_info = certificate
-        .tbs_certificate
-        .subject_public_key_info
+        .tbs_certificate()
+        .subject_public_key_info()
         .owned_to_ref();
 
-    match subject_public_key_info.algorithm.oids() {
+    match subject_public_key_info.algorithm().oids() {
         Ok((oiddb::rfc5912::ID_EC_PUBLIC_KEY, Some(oiddb::rfc5912::SECP_256_R_1))) => {
             let signature = EcdsaP256Signature::from_der(signature)
                 .map_err(|_err| X509VerificationError::DerSignatureInvalid)?;

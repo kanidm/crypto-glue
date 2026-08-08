@@ -25,10 +25,12 @@ cbc = "0.2.1"
 cipher = { version = "0.5", features = ["block-padding", "alloc"] }
 crypto-common = { version = "0.2.2", features = ["rand_core"] }
 der = "0.8.1"
+digest = { version = "0.11.0", default-features = false, features = ["mac"] }
 # dhkem = "0.0.1-alpha"
 ecdsa = "0.17"
 elliptic-curve = { version = "0.14.1", features = ["arithmetic", "sec1"] }
 spki = "0.8"
+hybrid-array = { version = "0.4", features = ["serde", "zeroize"] }
 hex = "0.4.3"
 hkdf = "0.13"
 hmac = "0.13.0"
@@ -56,7 +58,6 @@ tracing = "^0.1.37"
 ##           We can't really do much about it until the rustCrypto ecosystem either upgrades to
 ##           1.x, or they complete their move to their "hybrid-array" crate.
 generic-array = { version = "=0.14.7", features = ["serde", "zeroize"] }
-hybrid-array = { version = "0.4", features = ["serde", "zeroize"] }
 zeroize = { version = "1.6.0", features = ["serde"] }
 
 uuid = { version = "1", features = ["v4"] }
@@ -72,8 +73,9 @@ kbkdf = { version = "0.1.0-rc.1" }
 # crypto-common-pre = { package = "crypto-common", version = "0.2.0-rc.15", features = ["rand_core"] }
 
 [dev-dependencies]
-rustls = { version = "0.23", default-features = false, features = ["custom-provider", "std"] }
-rustls-rustcrypto = "0.0.2-alpha"
+rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "std"] }
+# rustls = { version = "0.23", default-features = false, features = ["custom-provider", "std"] }
+# rustls-rustcrypto = "0.0.2-alpha"
 tracing-subscriber = "^0.3.20"
 
 [target.'cfg(windows)'.dev-dependencies]

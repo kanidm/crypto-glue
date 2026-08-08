@@ -1,4 +1,4 @@
-#![deny(warnings)]
+// #![deny(warnings)]
 #![allow(dead_code)]
 #![warn(unused_extern_crates)]
 // Enable some groups of clippy lints.
@@ -78,12 +78,11 @@ pub mod sha1 {
 }
 
 pub mod s256 {
-    use generic_array::GenericArray;
-    use sha2::digest::consts::U32;
+    use hybrid_array::{sizes::U32, Array};
 
     pub use sha2::Sha256;
 
-    pub type Sha256Output = GenericArray<u8, U32>;
+    pub type Sha256Output = Array<u8, U32>;
 }
 
 pub mod s384 {
@@ -560,8 +559,8 @@ pub mod ecdsa_p256 {
     use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
     use elliptic_curve::point::AffinePoint;
     use elliptic_curve::scalar::{NonZeroScalar, ScalarPrimitive};
-    use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::sec1::FromSec1Point;
+    use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
     use generic_array::GenericArray;
     use p256::{ecdsa::DerSignature, NistP256};
@@ -617,8 +616,8 @@ pub mod ecdsa_p384 {
     use ecdsa::hazmat::DigestPrimitive;
     use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
     use elliptic_curve::point::AffinePoint;
-    use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::sec1::FromSec1Point;
+    use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
     // use generic_array::GenericArray;
     use p384::{ecdsa::DerSignature, NistP384};
@@ -672,8 +671,8 @@ pub mod ecdsa_p521 {
     use ecdsa::hazmat::DigestPrimitive;
     use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
     use elliptic_curve::point::AffinePoint;
-    use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::sec1::FromSec1Point;
+    use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
     // use generic_array::GenericArray;
     use p521::{ecdsa::DerSignature, NistP521};
@@ -725,11 +724,11 @@ pub mod ecdsa_p521 {
 
 pub mod nist_sp800_108_kdf_hmac_sha256 {
     use crate::traits::Zeroizing;
-    use crypto_common_pre::KeySizeUser;
-    use digest_pre::consts::*;
-    use hmac_pre::Hmac;
+    use crypto_common::KeySizeUser;
+    use digest::consts::*;
+    use hmac::Hmac;
     use kbkdf::{Counter, Kbkdf, Params};
-    use sha2_pre::Sha256;
+    use sha2::Sha256;
 
     struct MockOutput;
 
