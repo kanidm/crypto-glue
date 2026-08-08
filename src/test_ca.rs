@@ -66,7 +66,7 @@ pub(crate) fn build_test_ca_root(
     not_before: Time,
     not_after: Time,
 ) -> (SigningKey, CertificateInner) {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let root_serial_uuid = Uuid::new_v4();
     let serial_number = uuid_to_serial(root_serial_uuid);
@@ -208,7 +208,7 @@ pub(crate) fn build_test_ca_int(
     root_signing_key: &SigningKey,
     root_ca_cert: &CertificateInner,
 ) -> (SigningKey, CertificateInner) {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let root_verifying_key = VerifyingKey::from(root_signing_key); // Serialize with `::to_encoded_point()`
 
@@ -436,7 +436,7 @@ pub(crate) fn build_test_ca_int(
 }
 
 pub(crate) fn build_test_csr(subject: &Name) -> (SigningKey, CertReq) {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let client_signing_key = SigningKey::random(&mut rng);
     let client_verifying_key = VerifyingKey::from(&client_signing_key);
@@ -503,7 +503,7 @@ pub(crate) fn test_ca_sign_client_csr(
     ca_signing_key: &SigningKey,
     ca_cert: &CertificateInner,
 ) -> CertificateInner {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     // The process of issuance at this point really is up to "what do we want to copy from the
     // csr and what don't we?".
@@ -706,7 +706,7 @@ pub(crate) fn test_ca_sign_server_csr(
     ca_signing_key: &SigningKey,
     ca_cert: &CertificateInner,
 ) -> CertificateInner {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     // The process of issuance at this point really is up to "what do we want to copy from the
     // csr and what don't we?".

@@ -39,7 +39,7 @@ pub mod traits {
         pem::LineEnding as LineEndingPem, referenced::OwnedToRef, Decode as DecodeDer, DecodePem,
         Encode as EncodeDer, EncodePem,
     };
-    pub use elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
+    pub use elliptic_curve::sec1::{FromSec1Point, ToSec1Point};
     pub use hmac::{Hmac, Mac};
     pub use pkcs8::{
         DecodePrivateKey as Pkcs8DecodePrivateKey, EncodePrivateKey as Pkcs8EncodePrivateKey,
@@ -533,17 +533,16 @@ pub mod ecdh {
 
 pub mod ecdh_p256 {
     use elliptic_curve::ecdh::{EphemeralSecret, SharedSecret};
-    use elliptic_curve::sec1::EncodedPoint;
+    use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::{FieldBytes, PublicKey};
     use hkdf::Hkdf;
-    use hmac::SimpleHmac;
     use p256::NistP256;
     use sha2::Sha256;
 
     pub type EcdhP256EphemeralSecret = EphemeralSecret<NistP256>;
     pub type EcdhP256SharedSecret = SharedSecret<NistP256>;
     pub type EcdhP256PublicKey = PublicKey<NistP256>;
-    pub type EcdhP256PublicEncodedPoint = EncodedPoint<NistP256>;
+    pub type EcdhP256PublicSec1Point = Sec1Point<NistP256>;
     pub type EcdhP256FieldBytes = FieldBytes<NistP256>;
 
     pub type EcdhP256Hkdf = Hkdf<Sha256>;
@@ -561,8 +560,8 @@ pub mod ecdsa_p256 {
     use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
     use elliptic_curve::point::AffinePoint;
     use elliptic_curve::scalar::{NonZeroScalar, ScalarPrimitive};
-    use elliptic_curve::sec1::EncodedPoint;
-    use elliptic_curve::sec1::FromEncodedPoint;
+    use elliptic_curve::sec1::Sec1Point;
+    use elliptic_curve::sec1::FromSec1Point;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
     use generic_array::GenericArray;
     use p256::{ecdsa::DerSignature, NistP256};
@@ -580,7 +579,7 @@ pub mod ecdsa_p256 {
     pub type EcdsaP256PublicKey = PublicKey<NistP256>;
 
     pub type EcdsaP256PublicCoordinate = GenericArray<u8, U32>;
-    pub type EcdsaP256PublicEncodedPoint = EncodedPoint<NistP256>;
+    pub type EcdsaP256PublicSec1Point = Sec1Point<NistP256>;
 
     pub type EcdsaP256SigningKey = SigningKey<NistP256>;
     pub type EcdsaP256VerifyingKey = VerifyingKey<NistP256>;
@@ -608,7 +607,7 @@ pub mod ecdsa_p256 {
         field_x.copy_from_slice(x);
         field_y.copy_from_slice(y);
 
-        let ep = EcdsaP256PublicEncodedPoint::from_affine_coordinates(&field_x, &field_y, false);
+        let ep = EcdsaP256PublicSec1Point::from_affine_coordinates(&field_x, &field_y, false);
 
         EcdsaP256PublicKey::from_encoded_point(&ep).into_option()
     }
@@ -618,8 +617,8 @@ pub mod ecdsa_p384 {
     use ecdsa::hazmat::DigestPrimitive;
     use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
     use elliptic_curve::point::AffinePoint;
-    use elliptic_curve::sec1::EncodedPoint;
-    use elliptic_curve::sec1::FromEncodedPoint;
+    use elliptic_curve::sec1::Sec1Point;
+    use elliptic_curve::sec1::FromSec1Point;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
     // use generic_array::GenericArray;
     use p384::{ecdsa::DerSignature, NistP384};
@@ -635,7 +634,7 @@ pub mod ecdsa_p384 {
     pub type EcdsaP384PublicKey = PublicKey<NistP384>;
 
     // pub type EcdsaP384PublicCoordinate = GenericArray<u8, U32>;
-    pub type EcdsaP384PublicEncodedPoint = EncodedPoint<NistP384>;
+    pub type EcdsaP384PublicSec1Point = Sec1Point<NistP384>;
 
     pub type EcdsaP384SigningKey = SigningKey<NistP384>;
     pub type EcdsaP384VerifyingKey = VerifyingKey<NistP384>;
@@ -663,7 +662,7 @@ pub mod ecdsa_p384 {
         field_x.copy_from_slice(x);
         field_y.copy_from_slice(y);
 
-        let ep = EcdsaP384PublicEncodedPoint::from_affine_coordinates(&field_x, &field_y, false);
+        let ep = EcdsaP384PublicSec1Point::from_affine_coordinates(&field_x, &field_y, false);
 
         EcdsaP384PublicKey::from_encoded_point(&ep).into_option()
     }
@@ -673,8 +672,8 @@ pub mod ecdsa_p521 {
     use ecdsa::hazmat::DigestPrimitive;
     use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
     use elliptic_curve::point::AffinePoint;
-    use elliptic_curve::sec1::EncodedPoint;
-    use elliptic_curve::sec1::FromEncodedPoint;
+    use elliptic_curve::sec1::Sec1Point;
+    use elliptic_curve::sec1::FromSec1Point;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
     // use generic_array::GenericArray;
     use p521::{ecdsa::DerSignature, NistP521};
@@ -690,7 +689,7 @@ pub mod ecdsa_p521 {
     pub type EcdsaP521PublicKey = PublicKey<NistP521>;
 
     // pub type EcdsaP521PublicCoordinate = GenericArray<u8, U32>;
-    pub type EcdsaP521PublicEncodedPoint = EncodedPoint<NistP521>;
+    pub type EcdsaP521PublicSec1Point = Sec1Point<NistP521>;
 
     pub type EcdsaP521SigningKey = SigningKey<NistP521>;
     pub type EcdsaP521VerifyingKey = VerifyingKey<NistP521>;
@@ -718,7 +717,7 @@ pub mod ecdsa_p521 {
         field_x.copy_from_slice(x);
         field_y.copy_from_slice(y);
 
-        let ep = EcdsaP521PublicEncodedPoint::from_affine_coordinates(&field_x, &field_y, false);
+        let ep = EcdsaP521PublicSec1Point::from_affine_coordinates(&field_x, &field_y, false);
 
         EcdsaP521PublicKey::from_encoded_point(&ep).into_option()
     }
