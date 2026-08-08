@@ -132,7 +132,7 @@ pub mod hmac_s1 {
     pub fn new_key() -> HmacSha1Key {
         use crypto_common::KeyInit;
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         HmacSha1::generate_key(&mut rng).into()
     }
 
@@ -191,7 +191,7 @@ pub mod hmac_s256 {
     pub fn new_key() -> HmacSha256Key {
         use crypto_common::KeyInit;
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         HmacSha256::generate_key(&mut rng).into()
     }
 
@@ -251,7 +251,7 @@ pub mod hmac_s512 {
     pub fn new_hmac_sha512_key() -> HmacSha512Key {
         use crypto_common::KeyInit;
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         HmacSha512::generate_key(&mut rng).into()
     }
 
@@ -302,7 +302,7 @@ pub mod aes128 {
     }
 
     pub fn new_key() -> Aes128Key {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         aes::Aes128::generate_key(&mut rng).into()
     }
 }
@@ -326,7 +326,7 @@ pub mod aes128gcm {
     pub type Aes128GcmTag = GenericArray<u8, U16>;
 
     pub fn new_nonce() -> Aes128GcmNonce {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         Aes128Gcm::generate_nonce(&mut rng)
     }
 }
@@ -337,7 +337,7 @@ pub mod aes128kw {
 
     pub use crypto_common::KeyInit;
 
-    pub type Aes128Kw = aes_kw::KekAes128;
+    pub type Aes128Kw = aes_kw::KwAes128;
 
     pub type Aes128KwWrapped = GenericArray<u8, U24>;
 }
@@ -368,7 +368,7 @@ pub mod aes256 {
     }
 
     pub fn new_key() -> Aes256Key {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         aes::Aes256::generate_key(&mut rng).into()
     }
 }
@@ -396,7 +396,7 @@ pub mod aes256gcm {
     pub type Aes256GcmTag = GenericArray<u8, U16>;
 
     pub fn new_nonce() -> Aes256GcmNonce {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         Aes256Gcm::generate_nonce(&mut rng)
     }
@@ -418,7 +418,7 @@ pub mod aes256cbc {
     pub type Aes256CbcIv = GenericArray<u8, U16>;
 
     pub fn new_iv() -> Aes256CbcIv {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         Aes256CbcEnc::generate_iv(&mut rng)
     }
 
@@ -476,7 +476,7 @@ pub mod aes256kw {
 
     pub use crypto_common::KeyInit;
 
-    pub type Aes256Kw = aes_kw::KekAes256;
+    pub type Aes256Kw = aes_kw::KwAes256;
 
     pub type Aes256KwWrapped = GenericArray<u8, U40>;
 }
@@ -501,7 +501,7 @@ pub mod rsa {
 
     pub fn new_key(bits: usize) -> rsa::errors::Result<RsaPrivateKey> {
         let bits = std::cmp::max(bits, MIN_BITS);
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         RsaPrivateKey::new(&mut rng, bits)
     }
 
@@ -509,7 +509,7 @@ pub mod rsa {
         public_key: &RsaPublicKey,
         data: &[u8],
     ) -> rsa::errors::Result<Vec<u8>> {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         let padding = Oaep::new::<Sha256>();
         public_key.encrypt(&mut rng, padding, data)
     }
@@ -546,12 +546,12 @@ pub mod ecdh_p256 {
     pub type EcdhP256PublicEncodedPoint = EncodedPoint<NistP256>;
     pub type EcdhP256FieldBytes = FieldBytes<NistP256>;
 
-    pub type EcdhP256Hkdf = Hkdf<Sha256, SimpleHmac<Sha256>>;
+    pub type EcdhP256Hkdf = Hkdf<Sha256>;
 
     pub type EcdhP256Digest = Sha256;
 
     pub fn new_secret() -> EcdhP256EphemeralSecret {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         EcdhP256EphemeralSecret::random(&mut rng)
     }
 }
@@ -590,7 +590,7 @@ pub mod ecdsa_p256 {
     pub type EcdsaP256SignatureBytes = SignatureBytes<NistP256>;
 
     pub fn new_key() -> EcdsaP256PrivateKey {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         EcdsaP256PrivateKey::random(&mut rng)
     }
 
@@ -645,7 +645,7 @@ pub mod ecdsa_p384 {
     pub type EcdsaP384SignatureBytes = SignatureBytes<NistP384>;
 
     pub fn new_key() -> EcdsaP384PrivateKey {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         EcdsaP384PrivateKey::random(&mut rng)
     }
 
@@ -700,7 +700,7 @@ pub mod ecdsa_p521 {
     pub type EcdsaP521SignatureBytes = SignatureBytes<NistP521>;
 
     pub fn new_key() -> EcdsaP521PrivateKey {
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         EcdsaP521PrivateKey::random(&mut rng)
     }
 
@@ -971,7 +971,7 @@ mod tests {
         let signing_key = RS256SigningKey::new(pkey);
         let verifying_key = RS256VerifyingKey::new(pubkey);
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         let data = b"Fully sick data to sign mate.";
 
