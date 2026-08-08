@@ -409,7 +409,8 @@ pub mod aes256cbc {
 
     pub use crate::aes256::Aes256Key;
 
-    pub use aes::cipher::{block_padding, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
+    pub use aes::cipher::{block_padding, KeyIvInit};
+    // BlockDecryptMut, BlockEncryptMut, 
 
     pub type Aes256CbcEnc = cbc::Encryptor<aes::Aes256>;
     pub type Aes256CbcDec = cbc::Decryptor<aes::Aes256>;
@@ -555,10 +556,11 @@ pub mod ecdh_p256 {
 }
 
 pub mod ecdsa_p256 {
-    use ecdsa::hazmat::DigestPrimitive;
+    // use ecdsa::hazmat::DigestPrimitive;
     use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
     use elliptic_curve::point::AffinePoint;
-    use elliptic_curve::scalar::{NonZeroScalar, ScalarPrimitive};
+    use elliptic_curve::scalar::NonZeroScalar;
+    // use elliptic_curve::scalar::{NonZeroScalar, ScalarPrimitive};
     use elliptic_curve::sec1::FromSec1Point;
     use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
@@ -613,7 +615,7 @@ pub mod ecdsa_p256 {
 }
 
 pub mod ecdsa_p384 {
-    use ecdsa::hazmat::DigestPrimitive;
+    // use ecdsa::hazmat::DigestPrimitive;
     use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
     use elliptic_curve::point::AffinePoint;
     use elliptic_curve::sec1::FromSec1Point;
@@ -668,7 +670,7 @@ pub mod ecdsa_p384 {
 }
 
 pub mod ecdsa_p521 {
-    use ecdsa::hazmat::DigestPrimitive;
+    // use ecdsa::hazmat::DigestPrimitive;
     use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
     use elliptic_curve::point::AffinePoint;
     use elliptic_curve::sec1::FromSec1Point;
