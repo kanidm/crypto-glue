@@ -32,7 +32,7 @@ pub mod prelude {}
 mod test_ca;
 
 pub mod traits {
-    pub use aes_gcm::aead::AeadInPlace;
+    pub use aes_gcm::aead::AeadInOut;
     pub use crypto_common::KeyInit;
     pub use crypto_common::OutputSizeUser;
     pub use der::{
@@ -310,11 +310,11 @@ pub mod aes128 {
 pub mod aes128gcm {
     use aes::cipher::consts::{U12, U16};
     // use aes::Aes128;
-    use aes_gcm::aead::AeadCore;
+    // use aes_gcm::aead::AeadCore;
     // use aes_gcm::AesGcm;
     use generic_array::GenericArray;
 
-    pub use aes_gcm::aead::{Aead, AeadInPlace, Payload};
+    pub use aes_gcm::aead::{Aead, AeadInOut, Payload};
     pub use crypto_common::KeyInit;
 
     pub use crate::aes128::Aes128Key;
@@ -376,11 +376,11 @@ pub mod aes256 {
 pub mod aes256gcm {
     use aes::cipher::consts::{U12, U16};
     use aes::Aes256;
-    use aes_gcm::aead::AeadCore;
+    // use aes_gcm::aead::AeadCore;
     use aes_gcm::AesGcm;
     use generic_array::GenericArray;
 
-    pub use aes_gcm::aead::{Aead, AeadInPlace, Payload};
+    pub use aes_gcm::aead::{Aead, AeadInOut, Payload};
     pub use crypto_common::KeyInit;
 
     pub use crate::aes256::Aes256Key;
@@ -427,7 +427,7 @@ pub mod aes256cbc {
         data: &[u8],
     ) -> Result<(HmacSha256Output, Aes256CbcIv, Vec<u8>), crypto_common::InvalidLength>
     where
-        P: block_padding::Padding<<aes::Aes256 as crypto_common::BlockSizeUser>::BlockSize>,
+        P: block_padding::Padding,
     {
         use hmac::Mac;
 
@@ -450,7 +450,7 @@ pub mod aes256cbc {
         ciphertext: &[u8],
     ) -> Option<Vec<u8>>
     where
-        P: block_padding::Padding<<aes::Aes256 as crypto_common::BlockSizeUser>::BlockSize>,
+        P: block_padding::Padding,
     {
         use hmac::Mac;
 
