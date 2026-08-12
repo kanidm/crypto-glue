@@ -74,7 +74,7 @@ pub fn x509_verify_signature(
         .subject_public_key_info()
         .owned_to_ref();
 
-    match subject_public_key_info.algorithm().oids() {
+    match subject_public_key_info.algorithm.oids() {
         Ok((oiddb::rfc5912::ID_EC_PUBLIC_KEY, Some(oiddb::rfc5912::SECP_256_R_1))) => {
             let signature = EcdsaP256Signature::from_der(signature)
                 .map_err(|_err| X509VerificationError::DerSignatureInvalid)?;

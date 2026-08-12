@@ -33,8 +33,11 @@ mod test_ca;
 
 pub mod traits {
     pub use aes_gcm::aead::AeadInOut;
-    pub use crypto_common::KeyInit;
-    pub use crypto_common::OutputSizeUser;
+    pub use crypto_common::{
+        KeyInit,
+        OutputSizeUser,
+        Generate,
+    };
     pub use der::{
         pem::LineEnding as LineEndingPem, referenced::OwnedToRef, Decode as DecodeDer, DecodePem,
         Encode as EncodeDer, EncodePem,
@@ -129,13 +132,13 @@ pub mod hmac_s1 {
     pub type HmacSha1Bytes = Output<HmacSha1>;
 
     pub fn new_key() -> HmacSha1Key {
-        use crypto_common::KeyInit;
-
-        let mut rng = rand::rng();
-        HmacSha1::generate_key(&mut rng).into()
+        use crypto_common::Generate;
+        Key::<HmacSha1>::generate().into()
     }
 
     pub fn oneshot(key: &HmacSha1Key, data: &[u8]) -> HmacSha1Output {
+        use crypto_common::KeyInit;
+
         let mut hmac = HmacSha1::new(key);
         hmac.update(data);
         hmac.finalize()
@@ -188,13 +191,13 @@ pub mod hmac_s256 {
     pub type HmacSha256Bytes = Output<HmacSha256>;
 
     pub fn new_key() -> HmacSha256Key {
-        use crypto_common::KeyInit;
-
-        let mut rng = rand::rng();
-        HmacSha256::generate_key(&mut rng).into()
+        use crypto_common::Generate;
+        Key::<HmacSha256>::generate().into()
     }
 
     pub fn oneshot(key: &HmacSha256Key, data: &[u8]) -> HmacSha256Output {
+        use crypto_common::KeyInit;
+
         let mut hmac = HmacSha256::new(key);
         hmac.update(data);
         hmac.finalize()
@@ -248,13 +251,13 @@ pub mod hmac_s512 {
     pub type HmacSha512Bytes = Output<HmacSha512>;
 
     pub fn new_hmac_sha512_key() -> HmacSha512Key {
-        use crypto_common::KeyInit;
-
-        let mut rng = rand::rng();
-        HmacSha512::generate_key(&mut rng).into()
+        use crypto_common::Generate;
+        Key::<HmacSha512>::generate().into()
     }
 
     pub fn oneshot(key: &HmacSha512Key, data: &[u8]) -> HmacSha512Output {
+        use crypto_common::KeyInit;
+
         let mut hmac = HmacSha512::new(key);
         hmac.update(data);
         hmac.finalize()
@@ -282,7 +285,6 @@ pub mod hmac_s512 {
 pub mod aes128 {
     use aes;
     use crypto_common::Key;
-    use crypto_common::KeyInit;
     use zeroize::Zeroizing;
 
     pub type Aes128Key = Zeroizing<Key<aes::Aes128>>;
@@ -301,32 +303,27 @@ pub mod aes128 {
     }
 
     pub fn new_key() -> Aes128Key {
-        let mut rng = rand::rng();
-        aes::Aes128::generate_key(&mut rng).into()
+        use crypto_common::Generate;
+        Key::<aes::Aes128>::generate().into()
     }
 }
 
 pub mod aes128gcm {
     use aes::cipher::consts::{U12, U16};
-    // use aes::Aes128;
-    // use aes_gcm::aead::AeadCore;
-    // use aes_gcm::AesGcm;
-    use generic_array::GenericArray;
 
     pub use aes_gcm::aead::{Aead, AeadInOut, Payload};
     pub use crypto_common::KeyInit;
 
     pub use crate::aes128::Aes128Key;
 
-    // Same as  AesGcm<Aes256, U12, U16>;
     pub type Aes128Gcm = aes_gcm::Aes128Gcm;
 
-    pub type Aes128GcmNonce = GenericArray<u8, U12>;
-    pub type Aes128GcmTag = GenericArray<u8, U16>;
+    pub type Aes128GcmNonce = aes_gcm::Nonce<U12>;
+    pub type Aes128GcmTag = aes_gcm::Tag<U16>;
 
     pub fn new_nonce() -> Aes128GcmNonce {
-        let mut rng = rand::rng();
-        Aes128Gcm::generate_nonce(&mut rng)
+        use crypto_common::Generate;
+        Aes128GcmNonce::generate()
     }
 }
 
@@ -344,7 +341,6 @@ pub mod aes128kw {
 pub mod aes256 {
     use aes;
     use crypto_common::Key;
-    use crypto_common::KeyInit;
     use zeroize::Zeroizing;
 
     pub type Aes256Key = Zeroizing<Key<aes::Aes256>>;
@@ -367,8 +363,8 @@ pub mod aes256 {
     }
 
     pub fn new_key() -> Aes256Key {
-        let mut rng = rand::rng();
-        aes::Aes256::generate_key(&mut rng).into()
+        use crypto_common::Generate;
+        Key::<aes::Aes256>::generate().into()
     }
 }
 
@@ -377,7 +373,6 @@ pub mod aes256gcm {
     use aes::Aes256;
     // use aes_gcm::aead::AeadCore;
     use aes_gcm::AesGcm;
-    use generic_array::GenericArray;
 
     pub use aes_gcm::aead::{Aead, AeadInOut, Payload};
     pub use crypto_common::KeyInit;
@@ -388,16 +383,14 @@ pub mod aes256gcm {
     pub type Aes256Gcm = aes_gcm::Aes256Gcm;
 
     pub type Aes256GcmN16 = AesGcm<Aes256, U16, U16>;
-    pub type Aes256GcmNonce16 = GenericArray<u8, U16>;
+    pub type Aes256GcmNonce16 = aes_gcm::Nonce<U16>;
 
-    pub type Aes256GcmNonce = GenericArray<u8, U12>;
-
-    pub type Aes256GcmTag = GenericArray<u8, U16>;
+    pub type Aes256GcmNonce = aes_gcm::Nonce<U12>;
+    pub type Aes256GcmTag = aes_gcm::Tag<U16>;
 
     pub fn new_nonce() -> Aes256GcmNonce {
-        let mut rng = rand::rng();
-
-        Aes256Gcm::generate_nonce(&mut rng)
+        use crypto_common::Generate;
+        Aes256GcmNonce::generate()
     }
 }
 
@@ -405,7 +398,7 @@ pub mod aes256cbc {
     use crate::hmac_s256::HmacSha256;
     use crate::hmac_s256::HmacSha256Output;
     use aes::cipher::consts::U16;
-    use generic_array::GenericArray;
+    use aes::cipher::Array;
 
     pub use crate::aes256::Aes256Key;
 
@@ -415,11 +408,11 @@ pub mod aes256cbc {
     pub type Aes256CbcEnc = cbc::Encryptor<aes::Aes256>;
     pub type Aes256CbcDec = cbc::Decryptor<aes::Aes256>;
 
-    pub type Aes256CbcIv = GenericArray<u8, U16>;
+    pub type Aes256CbcIv = Array<u8, U16>;
 
     pub fn new_iv() -> Aes256CbcIv {
-        let mut rng = rand::rng();
-        Aes256CbcEnc::generate_iv(&mut rng)
+        use crypto_common::Generate;
+        Aes256CbcIv::generate()
     }
 
     pub fn enc<P>(
@@ -434,7 +427,7 @@ pub mod aes256cbc {
         let iv = new_iv();
         let enc = Aes256CbcEnc::new(key, &iv);
 
-        let ciphertext = enc.encrypt_padded_vec_mut::<P>(data);
+        let ciphertext = enc.encrypt_padded_vec::<P>(data);
 
         let mut hmac = HmacSha256::new_from_slice(key.as_slice())?;
         hmac.update(&ciphertext);
@@ -464,7 +457,7 @@ pub mod aes256cbc {
 
         let dec = Aes256CbcDec::new(key, iv);
 
-        let plaintext = dec.decrypt_padded_vec_mut::<P>(ciphertext).ok()?;
+        let plaintext = dec.decrypt_padded_vec::<P>(ciphertext).ok()?;
 
         Some(plaintext)
     }
@@ -486,7 +479,7 @@ pub mod rsa {
     use rsa::{RsaPrivateKey, RsaPublicKey};
 
     pub use rand;
-    pub use rsa::BigUint;
+    pub use rsa::BoxedUint as BigUint;
     pub use rsa::{pkcs1v15, Oaep};
     pub use sha2::Sha256;
 
@@ -550,8 +543,8 @@ pub mod ecdh_p256 {
     pub type EcdhP256Digest = Sha256;
 
     pub fn new_secret() -> EcdhP256EphemeralSecret {
-        let mut rng = rand::rng();
-        EcdhP256EphemeralSecret::random(&mut rng)
+        use crypto_common::Generate;
+        EcdhP256EphemeralSecret::generate()
     }
 }
 
@@ -572,7 +565,7 @@ pub mod ecdsa_p256 {
 
     pub type EcdsaP256PrivateKey = SecretKey<NistP256>;
     pub type EcdsaP256NonZeroScalar = NonZeroScalar<NistP256>;
-    pub type EcdsaP256ScalarPrimitive = ScalarPrimitive<NistP256>;
+    // pub type EcdsaP256ScalarPrimitive = ScalarPrimitive<NistP256>;
 
     pub type EcdsaP256FieldBytes = FieldBytes<NistP256>;
     pub type EcdsaP256AffinePoint = AffinePoint<NistP256>;
@@ -590,8 +583,9 @@ pub mod ecdsa_p256 {
     pub type EcdsaP256SignatureBytes = SignatureBytes<NistP256>;
 
     pub fn new_key() -> EcdsaP256PrivateKey {
-        let mut rng = rand::rng();
-        EcdsaP256PrivateKey::random(&mut rng)
+        use crypto_common::Generate;
+
+        EcdsaP256PrivateKey::generate()
     }
 
     pub fn from_coords_raw(x: &[u8], y: &[u8]) -> Option<EcdsaP256PublicKey> {
@@ -610,7 +604,7 @@ pub mod ecdsa_p256 {
 
         let ep = EcdsaP256PublicSec1Point::from_affine_coordinates(&field_x, &field_y, false);
 
-        EcdsaP256PublicKey::from_encoded_point(&ep).into_option()
+        EcdsaP256PublicKey::from_sec1_point(&ep).into_option()
     }
 }
 
@@ -645,8 +639,8 @@ pub mod ecdsa_p384 {
     pub type EcdsaP384SignatureBytes = SignatureBytes<NistP384>;
 
     pub fn new_key() -> EcdsaP384PrivateKey {
-        let mut rng = rand::rng();
-        EcdsaP384PrivateKey::random(&mut rng)
+        use crypto_common::Generate;
+        EcdsaP384PrivateKey::generate()
     }
 
     pub fn from_coords_raw(x: &[u8], y: &[u8]) -> Option<EcdsaP384PublicKey> {
@@ -665,7 +659,7 @@ pub mod ecdsa_p384 {
 
         let ep = EcdsaP384PublicSec1Point::from_affine_coordinates(&field_x, &field_y, false);
 
-        EcdsaP384PublicKey::from_encoded_point(&ep).into_option()
+        EcdsaP384PublicKey::from_sec1_point(&ep).into_option()
     }
 }
 
@@ -700,8 +694,8 @@ pub mod ecdsa_p521 {
     pub type EcdsaP521SignatureBytes = SignatureBytes<NistP521>;
 
     pub fn new_key() -> EcdsaP521PrivateKey {
-        let mut rng = rand::rng();
-        EcdsaP521PrivateKey::random(&mut rng)
+        use crypto_common::Generate;
+        EcdsaP521PrivateKey::generate()
     }
 
     pub fn from_coords_raw(x: &[u8], y: &[u8]) -> Option<EcdsaP521PublicKey> {
@@ -720,7 +714,7 @@ pub mod ecdsa_p521 {
 
         let ep = EcdsaP521PublicSec1Point::from_affine_coordinates(&field_x, &field_y, false);
 
-        EcdsaP521PublicKey::from_encoded_point(&ep).into_option()
+        EcdsaP521PublicKey::from_sec1_point(&ep).into_option()
     }
 }
 
@@ -795,7 +789,7 @@ mod tests {
     )]
     fn hmac_256_basic() {
         use crate::hmac_s256::*;
-        use crate::traits::Mac;
+        use crate::traits::{Mac, KeyInit};
 
         let hmac_key = new_key();
 
@@ -1142,7 +1136,9 @@ mod tests {
         let server_private_key: PrivateKeyDer =
             PrivatePkcs8KeyDer::from(server_private_key_pkcs8_der.as_bytes().to_vec()).into();
 
-        let provider = Arc::new(rustls_rustcrypto::provider());
+        // let provider = Arc::new(rustls_rustcrypto::provider());
+        let provider = Arc::new(rustls::crypto::aws_lc_rs::default_provider());
+
 
         let client_tls_config: Arc<_> = ClientConfig::builder_with_provider(provider.clone())
             .with_safe_default_protocol_versions()

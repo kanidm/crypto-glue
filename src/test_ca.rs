@@ -1,4 +1,5 @@
 use crate::x509::uuid_to_serial;
+use crypto_common::Generate;
 use p384::ecdsa::{signature::Verifier, VerifyingKey};
 use p384::ecdsa::{DerSignature, SigningKey};
 use std::str::FromStr;
@@ -76,7 +77,7 @@ pub(crate) fn build_test_ca_root(
     let profile =
         Root::new(emits_ocsp_response, root_subject).expect("Unable to build root profile");
 
-    let signing_key = SigningKey::random(&mut rng);
+    let signing_key = SigningKey::generate();
     let verifying_key = VerifyingKey::from(&signing_key); // Serialize with `::to_encoded_point()`
     let pub_key = SubjectPublicKeyInfoOwned::from_key(&verifying_key).expect("get rsa pub key");
 
@@ -110,7 +111,7 @@ pub(crate) fn build_test_ca_root(
         .expect("Unable to add extension");
 
     let cert = builder
-        .build_with_rng::<DerSignature>(&mut rng)
+        .build::<_, DerSignature>(&signing_key)
         .expect("failed to build root CA certificate");
 
     // let cert_der = cert.to_der().expect("failed to encode root CA certificate as DER");
@@ -134,7 +135,7 @@ pub(crate) fn build_test_ca_root(
     //     CA: True
     let (critical, basic_constraints) = cert
         .tbs_certificate()
-        .get::<BasicConstraints>()
+        .get_extension::<BasicConstraints>()
         .expect("failed to get extensions")
         .expect("basic constraints not present");
 
@@ -150,7 +151,7 @@ pub(crate) fn build_test_ca_root(
 
     let (critical, key_usage) = cert
         .tbs_certificate()
-        .get::<KeyUsage>()
+        .get_extension::<KeyUsage>()
         .expect("failed to get extensions")
         .expect("key usage not present");
 
@@ -164,7 +165,7 @@ pub(crate) fn build_test_ca_root(
     //     (Should be sha1 of the public key?)
     let (_, ca_subject_key_id) = cert
         .tbs_certificate()
-        .get::<SubjectKeyIdentifier>()
+        .get_extension::<SubjectKeyIdentifier>()
         .expect("failed to get extensions")
         .expect("key usage not present");
 
@@ -222,7 +223,7 @@ pub(crate) fn build_test_ca_int(
 
     let (_, root_subject_key_id) = root_ca_cert
         .tbs_certificate()
-        .get::<SubjectKeyIdentifier>()
+        .get_extension::<SubjectKeyIdentifier>()
         .expect("failed to get extensions")
         .expect("key usage not present");
 
@@ -637,7 +638,7 @@ pub(crate) fn test_ca_sign_client_csr(
     //   Subject Key ID
     let (_, int_subject_key_id) = ca_cert
         .tbs_certificate()
-        .get::<SubjectKeyIdentifier>()
+        .get_extension::<SubjectKeyIdentifier>()
         .expect("failed to get extensions")
         .expect("key usage not present");
 
@@ -652,7 +653,7 @@ pub(crate) fn test_ca_sign_client_csr(
     //   Subject Key ID
     let (_, client_subject_key_id) = client_cert
         .tbs_certificate()
-        .get::<SubjectKeyIdentifier>()
+        .get_extension::<SubjectKeyIdentifier>()
         .expect("failed to get extensions")
         .expect("key usage not present");
 
@@ -803,7 +804,7 @@ pub(crate) fn test_ca_sign_server_csr(
 
     let (critical, key_usage) = server_cert
         .tbs_certificate()
-        .get::<KeyUsage>()
+        .get_extension::<KeyUsage>()
         .expect("failed to get extensions")
         .expect("key usage not present");
 
@@ -821,7 +822,7 @@ pub(crate) fn test_ca_sign_server_csr(
 
     let (_, key_usage) = server_cert
         .tbs_certificate()
-        .get::<ExtendedKeyUsage>()
+        .get_extension::<ExtendedKeyUsage>()
         .expect("failed to get extensions")
         .expect("extended key usage not present");
 
@@ -832,7 +833,7 @@ pub(crate) fn test_ca_sign_server_csr(
 
     let (_, authority_key_id) = server_cert
         .tbs_certificate()
-        .get::<AuthorityKeyIdentifier>()
+        .get_extension::<AuthorityKeyIdentifier>()
         .expect("failed to get extensions")
         .expect("key usage not present");
 
@@ -841,7 +842,7 @@ pub(crate) fn test_ca_sign_server_csr(
     //   Subject Key ID
     let (_, int_subject_key_id) = ca_cert
         .tbs_certificate()
-        .get::<SubjectKeyIdentifier>()
+        .get_extension::<SubjectKeyIdentifier>()
         .expect("failed to get extensions")
         .expect("key usage not present");
 
@@ -856,7 +857,7 @@ pub(crate) fn test_ca_sign_server_csr(
     //   Subject Key ID
     let (_, server_subject_key_id) = server_cert
         .tbs_certificate()
-        .get::<SubjectKeyIdentifier>()
+        .get_extension::<SubjectKeyIdentifier>()
         .expect("failed to get extensions")
         .expect("key usage not present");
 

@@ -41,7 +41,8 @@ p521 = "0.14"
 pbkdf2 = "0.13"
 pkcs8 = { version = "0.11", features = ["encryption"] }
 rand = "0.10"
-rsa = { version = "0.9.10", features = ["sha2", "pem"] }
+# rsa = { version = "0.9.10", features = ["sha2", "pem"] }
+rsa = { version = "0.10.0-rc.18", features = ["sha2"] }
 
 sec1 = "0.8.1"
 

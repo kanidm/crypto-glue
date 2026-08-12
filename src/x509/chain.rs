@@ -135,7 +135,7 @@ impl X509Store {
         //     CA:FALSE
         let maybe_basic_constraints = certificate_to_validate
             .tbs_certificate()
-            .get::<BasicConstraints>()
+            .get_extension::<BasicConstraints>()
             .map_err(|_err| X509VerificationError::ExtensionFailure)?;
         // If not present, we act as if this is not a CA.
         // .ok_or(
@@ -150,7 +150,7 @@ impl X509Store {
 
         let maybe_keyusage = certificate_to_validate
             .tbs_certificate()
-            .get::<KeyUsage>()
+            .get_extension::<KeyUsage>()
             .map_err(|_err| X509VerificationError::ExtensionFailure)?;
 
         if let Some((_critical, key_usage)) = maybe_keyusage {
@@ -207,7 +207,7 @@ impl X509Store {
 
         let (_critical, basic_constraints) = authority
             .tbs_certificate()
-            .get::<BasicConstraints>()
+            .get_extension::<BasicConstraints>()
             .map_err(|_err| X509VerificationError::ExtensionFailure)?
             // You are a CA, you must have this.
             .ok_or(X509VerificationError::BasicConstraintsNotPresent)?;
@@ -226,7 +226,7 @@ impl X509Store {
 
         let (_critical, key_usage) = authority
             .tbs_certificate()
-            .get::<KeyUsage>()
+            .get_extension::<KeyUsage>()
             .map_err(|_err| X509VerificationError::ExtensionFailure)?
             .ok_or(X509VerificationError::KeyUsageNotPresent)?;
 
