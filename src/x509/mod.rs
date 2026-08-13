@@ -50,7 +50,7 @@ pub fn x509_digest_public_key_sha256(certificate: &Certificate) -> Option<Sha256
     let public_key_bytes = certificate
         .tbs_certificate()
         .subject_public_key_info()
-        .subject_public_key()
+        .subject_public_key
         .as_bytes()?;
 
     let mut hasher = Sha256::new();

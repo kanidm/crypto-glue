@@ -295,7 +295,8 @@ pub mod aes128 {
     }
 
     pub fn key_from_slice(bytes: &[u8]) -> Option<Aes128Key> {
-        Key::<aes::Aes128>::from_exact_iter(bytes.iter().copied()).map(|key| key.into())
+        Key::<aes::Aes128>::try_from(bytes).ok()
+            .map(|key| key.into())
     }
 
     pub fn key_from_bytes(bytes: [u8; 16]) -> Aes128Key {
@@ -351,11 +352,8 @@ pub mod aes256 {
     }
 
     pub fn key_from_slice(bytes: &[u8]) -> Option<Aes256Key> {
-        Key::<aes::Aes256>::from_exact_iter(bytes.iter().copied()).map(|key| key.into())
-    }
-
-    pub fn key_from_vec(bytes: Vec<u8>) -> Option<Aes256Key> {
-        Key::<aes::Aes256>::from_exact_iter(bytes).map(|key| key.into())
+        Key::<aes::Aes256>::try_from(bytes).ok()
+            .map(|key| key.into())
     }
 
     pub fn key_from_bytes(bytes: [u8; 32]) -> Aes256Key {
@@ -402,8 +400,7 @@ pub mod aes256cbc {
 
     pub use crate::aes256::Aes256Key;
 
-    pub use aes::cipher::{block_padding, KeyIvInit};
-    // BlockDecryptMut, BlockEncryptMut,
+    pub use aes::cipher::{block_padding, KeyIvInit, BlockModeDecrypt, BlockModeEncrypt};
 
     pub type Aes256CbcEnc = cbc::Encryptor<aes::Aes256>;
     pub type Aes256CbcDec = cbc::Decryptor<aes::Aes256>;
@@ -423,6 +420,8 @@ pub mod aes256cbc {
         P: block_padding::Padding,
     {
         use hmac::Mac;
+        use cipher::BlockModeEncrypt;
+        use cipher::KeyInit;
 
         let iv = new_iv();
         let enc = Aes256CbcEnc::new(key, &iv);
@@ -446,6 +445,8 @@ pub mod aes256cbc {
         P: block_padding::Padding,
     {
         use hmac::Mac;
+        use cipher::BlockModeDecrypt;
+        use cipher::KeyInit;
 
         let mut hmac = HmacSha256::new_from_slice(key.as_slice()).ok()?;
         hmac.update(ciphertext);
@@ -503,7 +504,7 @@ pub mod rsa {
         data: &[u8],
     ) -> rsa::errors::Result<Vec<u8>> {
         let mut rng = rand::rng();
-        let padding = Oaep::new::<Sha256>();
+        let padding = Oaep::<Sha256>::new();
         public_key.encrypt(&mut rng, padding, data)
     }
 
@@ -511,7 +512,7 @@ pub mod rsa {
         private_key: &RsaPrivateKey,
         ciphertext: &[u8],
     ) -> rsa::errors::Result<Vec<u8>> {
-        let padding = Oaep::new::<Sha256>();
+        let padding = Oaep::<Sha256>::new();
         private_key.decrypt(padding, ciphertext)
     }
 }
@@ -807,6 +808,7 @@ mod tests {
     )]
     fn hmac_512_basic() {
         use crate::hmac_s512::*;
+        use cipher::KeyInit;
 
         let hmac_key = new_hmac_sha512_key();
 
@@ -853,11 +855,11 @@ mod tests {
         let associated_data = b"";
 
         let tag = cipher
-            .encrypt_in_place_detached(&nonce, associated_data, buffer.as_mut_slice())
+            .encrypt_inout_detached(&nonce, associated_data, buffer.as_mut_slice().into())
             .expect("Failed to encrypt message");
 
         cipher
-            .decrypt_in_place_detached(&nonce, associated_data, &mut buffer, &tag)
+            .decrypt_inout_detached(&nonce, associated_data, buffer.as_mut_slice().into(), &tag)
             .expect("Failed to decrypt message");
 
         assert_eq!(buffer, b"test message, super cool");
@@ -877,12 +879,12 @@ mod tests {
 
         let enc = aes256cbc::Aes256CbcEnc::new(&key, &iv);
 
-        let ciphertext = enc.encrypt_padded_vec_mut::<block_padding::Pkcs7>(b"plaintext message");
+        let ciphertext = enc.encrypt_padded_vec::<block_padding::Pkcs7>(b"plaintext message");
 
         let dec = aes256cbc::Aes256CbcDec::new(&key, &iv);
 
         let plaintext = dec
-            .decrypt_padded_vec_mut::<block_padding::Pkcs7>(&ciphertext)
+            .decrypt_padded_vec::<block_padding::Pkcs7>(&ciphertext)
             .expect("Unpadding Failed");
 
         assert_eq!(plaintext, b"plaintext message");
@@ -926,14 +928,14 @@ mod tests {
 
         // Wrap it.
         key_wrap
-            .wrap(&key_to_wrap, &mut wrapped_key)
+            .wrap_key(&key_to_wrap, &mut wrapped_key)
             .expect("Failed to wrap key");
         // Reverse the process
 
         let mut key_unwrapped = aes256::Aes256Key::default();
 
         key_wrap
-            .unwrap(&wrapped_key, &mut key_unwrapped)
+            .unwrap_key(&wrapped_key, &mut key_unwrapped)
             .expect("Failed to unwrap key");
 
         assert_eq!(key_to_wrap, key_unwrapped);

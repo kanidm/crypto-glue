@@ -64,8 +64,6 @@ pub(crate) fn build_test_ca_root(
     not_before: Time,
     not_after: Time,
 ) -> (SigningKey, CertificateInner) {
-    let mut rng = rand::rng();
-
     let root_serial_uuid = Uuid::new_v4();
     let serial_number = uuid_to_serial(root_serial_uuid);
 
@@ -252,7 +250,7 @@ pub(crate) fn build_test_ca_int(
     let int_subject = Name::from_str("CN=Oh no its an intermediate,C=AU")
         .expect("static intermediate CA subject name should be valid");
 
-    let int_signing_key = SigningKey::random(&mut rng);
+    let int_signing_key = SigningKey::generate();
     let int_verifying_key = VerifyingKey::from(&int_signing_key); // Serialize with `::to_encoded_point()`
     let int_pub_key =
         SubjectPublicKeyInfoOwned::from_key(&int_verifying_key).expect("get rsa pub key");
@@ -444,20 +442,18 @@ pub(crate) fn build_test_ca_int(
 }
 
 pub(crate) fn build_test_csr(subject: &Name) -> (SigningKey, CertReq) {
-    let mut rng = rand::rng();
-
-    let client_signing_key = SigningKey::random(&mut rng);
+    let client_signing_key = SigningKey::generate();
     let client_verifying_key = VerifyingKey::from(&client_signing_key);
 
     // Serialize with `::to_encoded_point()`
     // let int_pub_key =
     // SubjectPublicKeyInfoOwned::from_key(int_verifying_key).expect("get rsa pub key");
 
-    let builder = RequestBuilder::new(subject.clone(), &client_signing_key)
+    let builder = RequestBuilder::new(subject.clone())
         .expect("Create certificate request");
 
     let client_cert_req = builder
-        .build_with_rng::<DerSignature>(&mut rng)
+        .build::<_, DerSignature>(&client_signing_key)
         .expect("failed to build client certificate request");
 
     let client_cert_req_der = client_cert_req
@@ -750,9 +746,9 @@ pub(crate) fn test_ca_sign_server_csr(
         profile,
         serial_number,
         validity,
-        server_cert_subject.clone(),
+        // server_cert_subject.clone(),
         spki.clone(),
-        ca_signing_key,
+        // ca_signing_key,
     )
     .expect("Create certificate");
 
@@ -771,7 +767,7 @@ pub(crate) fn test_ca_sign_server_csr(
         .expect("Unable to add extension");
 
     let server_cert = builder
-        .build_with_rng::<DerSignature>(&mut rng)
+        .build::<_, DerSignature>(&ca_signing_key)
         .expect("Failed to build server certificate");
 
     // let server_cert_der = server_cert
