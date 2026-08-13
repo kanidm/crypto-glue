@@ -6,10 +6,10 @@ use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 use uuid::Uuid;
 use x509_cert::builder::profile::cabf::{
-    tls::{Subordinate, Subscriber},
+    tls::{Subordinate, Subscriber, CertificateType},
     Root,
 };
-use x509_cert::builder::{Builder, CertificateBuilder, Profile, RequestBuilder};
+use x509_cert::builder::{Builder, CertificateBuilder, RequestBuilder};
 use x509_cert::certificate::CertificateInner;
 use x509_cert::der::asn1::Ia5String;
 use x509_cert::der::Encode;
@@ -240,15 +240,17 @@ pub(crate) fn build_test_ca_int(
 
     let validity = Validity::new(not_before, not_after);
 
-    let profile = Profile::SubCA {
-        issuer: root_ca_cert.tbs_certificate().subject().clone(),
-        // int_subject.clone(),
-        path_len_constraint: Some(0),
-        // ocsp
-        // client_auth
-    };
     let int_subject = Name::from_str("CN=Oh no its an intermediate,C=AU")
         .expect("static intermediate CA subject name should be valid");
+
+    let profile = Subordinate {
+        issuer: root_ca_cert.tbs_certificate().subject().clone(),
+        subject: int_subject.clone(),
+        path_len_constraint: Some(0),
+        emits_ocsp_response: false,
+        client_auth: false,
+
+    };
 
     let int_signing_key = SigningKey::generate();
     let int_verifying_key = VerifyingKey::from(&int_signing_key); // Serialize with `::to_encoded_point()`
@@ -302,7 +304,7 @@ pub(crate) fn build_test_ca_int(
         .expect("Unable to add extension");
 
     let int_cert = builder
-        .build_with_rng::<DerSignature>(&mut rng)
+        .build::<_, DerSignature>(&root_signing_key)
         .expect("failed to build intermediate CA certificate");
 
     // let cert_der = int_cert
@@ -316,7 +318,7 @@ pub(crate) fn build_test_ca_int(
         .expect("failed to encode intermediate CA TBS certificate as DER");
 
     let byte_sig: &[u8] = int_cert
-        .signature
+        .signature()
         .as_bytes()
         .expect("intermediate CA signature should be byte-aligned");
     let cert_sig =
@@ -330,7 +332,7 @@ pub(crate) fn build_test_ca_int(
 
     let (critical, basic_constraints) = int_cert
         .tbs_certificate()
-        .get::<BasicConstraints>()
+        .get_extension::<BasicConstraints>()
         .expect("failed to get extensions")
         .expect("basic constraints not present");
 
@@ -348,7 +350,7 @@ pub(crate) fn build_test_ca_int(
 
     let (critical, key_usage) = int_cert
         .tbs_certificate()
-        .get::<KeyUsage>()
+        .get_extension::<KeyUsage>()
         .expect("failed to get extensions")
         .expect("key usage not present");
 
@@ -363,7 +365,7 @@ pub(crate) fn build_test_ca_int(
 
     let (critical, _name_constraints) = int_cert
         .tbs_certificate()
-        .get::<NameConstraints>()
+        .get_extension::<NameConstraints>()
         .expect("failed to get extensions")
         .expect("key usage not present");
 
@@ -374,7 +376,7 @@ pub(crate) fn build_test_ca_int(
     //     (Should be sha1 of the signer public key)
     let (_, authority_key_id) = int_cert
         .tbs_certificate()
-        .get::<AuthorityKeyIdentifier>()
+        .get_extension::<AuthorityKeyIdentifier>()
         .expect("failed to get extensions")
         .expect("key usage not present");
 
@@ -391,7 +393,7 @@ pub(crate) fn build_test_ca_int(
     //   Subject Key ID
     let (_, int_subject_key_id) = int_cert
         .tbs_certificate()
-        .get::<SubjectKeyIdentifier>()
+        .get_extension::<SubjectKeyIdentifier>()
         .expect("failed to get extensions")
         .expect("key usage not present");
 
@@ -401,7 +403,7 @@ pub(crate) fn build_test_ca_int(
     assert_eq!(
         int_cert
             .tbs_certificate()
-            .validity
+            .validity()
             .not_before
             .to_unix_duration(),
         validity.not_before.to_unix_duration()
@@ -409,7 +411,7 @@ pub(crate) fn build_test_ca_int(
     assert_eq!(
         int_cert
             .tbs_certificate()
-            .validity
+            .validity()
             .not_after
             .to_unix_duration(),
         validity.not_after.to_unix_duration()
@@ -421,16 +423,16 @@ pub(crate) fn build_test_ca_int(
         root_ca_cert.tbs_certificate().subject(),
     );
 
-    assert_eq!(int_cert.tbs_certificate().subject, int_subject);
+    assert_eq!(int_cert.tbs_certificate().subject(), &int_subject);
 
     //
     //   Serial Number
     println!(
         "{:?}",
-        &int_cert.tbs_certificate().serial_number.as_bytes()[1..]
+        &int_cert.tbs_certificate().serial_number().as_bytes()[1..]
     );
     println!("{:?}", int_serial_uuid.as_bytes());
-    let verify_serial = Uuid::from_slice(&int_cert.tbs_certificate().serial_number.as_bytes()[1..])
+    let verify_serial = Uuid::from_slice(&int_cert.tbs_certificate().serial_number().as_bytes()[1..])
         .expect("failed to parse intermediate CA certificate serial number as UUID");
 
     assert_eq!(int_serial_uuid, verify_serial);
@@ -529,11 +531,12 @@ pub(crate) fn test_ca_sign_client_csr(
 
     let validity = Validity::new(not_before, not_after);
 
-    let profile = Profile::Leaf {
+    let profile = Subscriber {
+        certificate_type: CertificateType::OrganizationValidated,
         issuer: ca_cert.tbs_certificate().subject().clone(),
-        enable_key_agreement: false,
-        enable_key_encipherment: true,
-        include_subject_key_identifier: true,
+        client_auth: false,
+        tls12_options: Default::default(),
+        enable_data_encipherment: Default::default()
     };
 
     let client_cert_subject = cert_req.info.subject.clone();
@@ -568,7 +571,7 @@ pub(crate) fn test_ca_sign_client_csr(
         .expect("Unable to add extension");
 
     let client_cert = builder
-        .build_with_rng::<DerSignature>(&mut rng)
+        .build::<_, DerSignature>(&ca_signing_key)
         .expect("failed to build client certificate");
 
     // let client_cert_der = client_cert
@@ -582,7 +585,7 @@ pub(crate) fn test_ca_sign_client_csr(
 
     let (critical, basic_constraints) = client_cert
         .tbs_certificate()
-        .get::<BasicConstraints>()
+        .get_extension::<BasicConstraints>()
         .expect("failed to get extensions")
         .expect("basic constraints not present");
 
@@ -598,7 +601,7 @@ pub(crate) fn test_ca_sign_client_csr(
 
     let (critical, key_usage) = client_cert
         .tbs_certificate()
-        .get::<KeyUsage>()
+        .get_extension::<KeyUsage>()
         .expect("failed to get extensions")
         .expect("key usage not present");
 
@@ -614,7 +617,7 @@ pub(crate) fn test_ca_sign_client_csr(
 
     let (_, key_usage) = client_cert
         .tbs_certificate()
-        .get::<ExtendedKeyUsage>()
+        .get_extension::<ExtendedKeyUsage>()
         .expect("failed to get extensions")
         .expect("extended key usage not present");
 
@@ -625,7 +628,7 @@ pub(crate) fn test_ca_sign_client_csr(
 
     let (_, authority_key_id) = client_cert
         .tbs_certificate()
-        .get::<AuthorityKeyIdentifier>()
+        .get_extension::<AuthorityKeyIdentifier>()
         .expect("failed to get extensions")
         .expect("key usage not present");
 
@@ -659,7 +662,7 @@ pub(crate) fn test_ca_sign_client_csr(
     assert_eq!(
         client_cert
             .tbs_certificate()
-            .validity
+            .validity()
             .not_before
             .to_unix_duration(),
         validity.not_before.to_unix_duration()
@@ -667,7 +670,7 @@ pub(crate) fn test_ca_sign_client_csr(
     assert_eq!(
         client_cert
             .tbs_certificate()
-            .validity
+            .validity()
             .not_after
             .to_unix_duration(),
         validity.not_after.to_unix_duration()
@@ -686,16 +689,16 @@ pub(crate) fn test_ca_sign_client_csr(
     //   Serial Number
     println!(
         "{:?}",
-        &client_cert.tbs_certificate().serial_number.as_bytes()[1..]
+        &client_cert.tbs_certificate().serial_number().as_bytes()[1..]
     );
     println!("{:?}", client_serial_uuid.as_bytes());
     let verify_serial =
-        Uuid::from_slice(&client_cert.tbs_certificate().serial_number.as_bytes()[1..])
+        Uuid::from_slice(&client_cert.tbs_certificate().serial_number().as_bytes()[1..])
             .expect("failed to parse client certificate serial number as UUID");
 
     assert_eq!(client_serial_uuid, verify_serial);
     //   Subject
-    assert_eq!(client_cert_subject, client_cert.tbs_certificate().subject);
+    assert_eq!(&client_cert_subject, client_cert.tbs_certificate().subject());
 
     client_cert
 }
@@ -729,11 +732,13 @@ pub(crate) fn test_ca_sign_server_csr(
 
     let validity = Validity::new(not_before, not_after);
 
-    let profile = Profile::Leaf {
+    let profile = Subscriber {
+        certificate_type: CertificateType::OrganizationValidated,
         issuer: ca_cert.tbs_certificate().subject().clone(),
-        enable_key_agreement: true,
-        enable_key_encipherment: true,
-        include_subject_key_identifier: true,
+        client_auth: false,
+        tls12_options: Default::default(),
+        enable_data_encipherment: Default::default(),
+
     };
 
     let server_cert_subject = cert_req.info.subject.clone();
@@ -783,7 +788,7 @@ pub(crate) fn test_ca_sign_server_csr(
 
     let (critical, basic_constraints) = server_cert
         .tbs_certificate()
-        .get::<BasicConstraints>()
+        .get_extension::<BasicConstraints>()
         .expect("failed to get extensions")
         .expect("basic constraints not present");
 
@@ -863,7 +868,7 @@ pub(crate) fn test_ca_sign_server_csr(
     assert_eq!(
         server_cert
             .tbs_certificate()
-            .validity
+            .validity()
             .not_before
             .to_unix_duration(),
         validity.not_before.to_unix_duration()
@@ -871,7 +876,7 @@ pub(crate) fn test_ca_sign_server_csr(
     assert_eq!(
         server_cert
             .tbs_certificate()
-            .validity
+            .validity()
             .not_after
             .to_unix_duration(),
         validity.not_after.to_unix_duration()
@@ -890,16 +895,16 @@ pub(crate) fn test_ca_sign_server_csr(
     //   Serial Number
     println!(
         "{:?}",
-        &server_cert.tbs_certificate().serial_number.as_bytes()[1..]
+        &server_cert.tbs_certificate().serial_number().as_bytes()[1..]
     );
     println!("{:?}", server_serial_uuid.as_bytes());
     let verify_serial =
-        Uuid::from_slice(&server_cert.tbs_certificate().serial_number.as_bytes()[1..])
+        Uuid::from_slice(&server_cert.tbs_certificate().serial_number().as_bytes()[1..])
             .expect("Failed to parse server certificate serial number");
 
     assert_eq!(server_serial_uuid, verify_serial);
     //   Subject
-    assert_eq!(server_cert_subject, server_cert.tbs_certificate().subject);
+    assert_eq!(&server_cert_subject, server_cert.tbs_certificate().subject());
 
     server_cert
 }
