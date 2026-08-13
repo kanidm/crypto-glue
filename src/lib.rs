@@ -1044,7 +1044,6 @@ mod tests {
         use crate::ecdsa_p256;
         use crate::traits::Pkcs8EncodePrivateKey;
 
-        // use pkcs8::SecretDocument;
         use pkcs8::PrivateKeyInfo;
 
         let ecdsa_priv_key = ecdsa_p256::new_key();

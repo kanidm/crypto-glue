@@ -27,7 +27,7 @@ crypto-common = { version = "0.2.2", features = ["rand_core"] }
 der = "0.8.1"
 digest = { version = "0.11.0", default-features = false, features = ["mac"] }
 # dhkem = "0.0.1-alpha"
-ecdsa = { version = "0.17", features = ["digest"] }
+ecdsa = { version = "0.17", features = ["digest", "der"] }
 elliptic-curve = { version = "0.14.1", features = ["arithmetic", "sec1"] }
 spki = "0.8"
 hybrid-array = { version = "0.4", features = ["serde", "zeroize"] }
