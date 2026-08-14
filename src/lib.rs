@@ -1,4 +1,4 @@
-// #![deny(warnings)]
+#![deny(warnings)]
 #![allow(dead_code)]
 #![warn(unused_extern_crates)]
 // Enable some groups of clippy lints.
@@ -547,7 +547,6 @@ pub mod ecdsa_p256 {
     use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
     use elliptic_curve::point::AffinePoint;
     use elliptic_curve::scalar::NonZeroScalar;
-    // use elliptic_curve::scalar::{NonZeroScalar, ScalarPrimitive};
     use elliptic_curve::sec1::FromSec1Point;
     use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
@@ -558,7 +557,6 @@ pub mod ecdsa_p256 {
 
     pub type EcdsaP256PrivateKey = SecretKey<NistP256>;
     pub type EcdsaP256NonZeroScalar = NonZeroScalar<NistP256>;
-    // pub type EcdsaP256ScalarPrimitive = ScalarPrimitive<NistP256>;
 
     pub type EcdsaP256FieldBytes = FieldBytes<NistP256>;
     pub type EcdsaP256AffinePoint = AffinePoint<NistP256>;
