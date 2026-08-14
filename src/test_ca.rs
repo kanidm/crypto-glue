@@ -1,12 +1,14 @@
-use crate::x509::uuid_to_serial;
+use crate::{
+    ecdsa_p384::{EcdsaP384DerSignature, EcdsaP384SigningKey},
+    x509::uuid_to_serial,
+};
 use crypto_common::Generate;
 use p384::ecdsa::{signature::Verifier, VerifyingKey};
-use p384::ecdsa::{DerSignature, SigningKey};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 use uuid::Uuid;
 use x509_cert::builder::profile::cabf::{
-    tls::{Subordinate, Subscriber, CertificateType},
+    tls::{CertificateType, Subordinate, Subscriber},
     Root,
 };
 use x509_cert::builder::{Builder, CertificateBuilder, RequestBuilder};
@@ -63,7 +65,7 @@ pub fn now() -> SystemTime {
 pub(crate) fn build_test_ca_root(
     not_before: Time,
     not_after: Time,
-) -> (SigningKey, CertificateInner) {
+) -> (EcdsaP384SigningKey, CertificateInner) {
     let root_serial_uuid = Uuid::new_v4();
     let serial_number = uuid_to_serial(root_serial_uuid);
 
@@ -75,7 +77,7 @@ pub(crate) fn build_test_ca_root(
     let profile =
         Root::new(emits_ocsp_response, root_subject).expect("Unable to build root profile");
 
-    let signing_key = SigningKey::generate();
+    let signing_key = EcdsaP384SigningKey::generate();
     let verifying_key = VerifyingKey::from(&signing_key); // Serialize with `::to_encoded_point()`
     let pub_key = SubjectPublicKeyInfoOwned::from_key(&verifying_key).expect("get rsa pub key");
 
@@ -109,7 +111,7 @@ pub(crate) fn build_test_ca_root(
         .expect("Unable to add extension");
 
     let cert = builder
-        .build::<_, DerSignature>(&signing_key)
+        .build::<EcdsaP384SigningKey, EcdsaP384DerSignature>(&signing_key)
         .expect("failed to build root CA certificate");
 
     // let cert_der = cert.to_der().expect("failed to encode root CA certificate as DER");
@@ -124,7 +126,8 @@ pub(crate) fn build_test_ca_root(
         .signature()
         .as_bytes()
         .expect("root CA signature should be byte-aligned");
-    let cert_sig = DerSignature::try_from(byte_sig).expect("failed to parse root CA DER signature");
+    let cert_sig =
+        EcdsaP384DerSignature::try_from(byte_sig).expect("failed to parse root CA DER signature");
     assert!(verifying_key.verify(&cert_bytes, &cert_sig).is_ok());
 
     // For a root cert we must validate
@@ -212,9 +215,9 @@ pub(crate) fn build_test_ca_root(
 pub(crate) fn build_test_ca_int(
     not_before: Time,
     not_after: Time,
-    root_signing_key: &SigningKey,
+    root_signing_key: &EcdsaP384SigningKey,
     root_ca_cert: &CertificateInner,
-) -> (SigningKey, CertificateInner) {
+) -> (EcdsaP384SigningKey, CertificateInner) {
     let mut rng = rand::rng();
 
     let root_verifying_key = VerifyingKey::from(root_signing_key); // Serialize with `::to_encoded_point()`
@@ -249,10 +252,9 @@ pub(crate) fn build_test_ca_int(
         path_len_constraint: Some(0),
         emits_ocsp_response: false,
         client_auth: false,
-
     };
 
-    let int_signing_key = SigningKey::generate();
+    let int_signing_key = EcdsaP384SigningKey::generate();
     let int_verifying_key = VerifyingKey::from(&int_signing_key); // Serialize with `::to_encoded_point()`
     let int_pub_key =
         SubjectPublicKeyInfoOwned::from_key(&int_verifying_key).expect("get rsa pub key");
@@ -304,7 +306,7 @@ pub(crate) fn build_test_ca_int(
         .expect("Unable to add extension");
 
     let int_cert = builder
-        .build::<_, DerSignature>(&root_signing_key)
+        .build::<EcdsaP384SigningKey, EcdsaP384DerSignature>(&root_signing_key)
         .expect("failed to build intermediate CA certificate");
 
     // let cert_der = int_cert
@@ -321,8 +323,8 @@ pub(crate) fn build_test_ca_int(
         .signature()
         .as_bytes()
         .expect("intermediate CA signature should be byte-aligned");
-    let cert_sig =
-        DerSignature::try_from(byte_sig).expect("failed to parse intermediate CA DER signature");
+    let cert_sig = EcdsaP384DerSignature::try_from(byte_sig)
+        .expect("failed to parse intermediate CA DER signature");
     assert!(root_verifying_key.verify(&cert_bytes, &cert_sig).is_ok());
 
     // Intermediate:
@@ -432,8 +434,9 @@ pub(crate) fn build_test_ca_int(
         &int_cert.tbs_certificate().serial_number().as_bytes()[1..]
     );
     println!("{:?}", int_serial_uuid.as_bytes());
-    let verify_serial = Uuid::from_slice(&int_cert.tbs_certificate().serial_number().as_bytes()[1..])
-        .expect("failed to parse intermediate CA certificate serial number as UUID");
+    let verify_serial =
+        Uuid::from_slice(&int_cert.tbs_certificate().serial_number().as_bytes()[1..])
+            .expect("failed to parse intermediate CA certificate serial number as UUID");
 
     assert_eq!(int_serial_uuid, verify_serial);
 
@@ -443,19 +446,18 @@ pub(crate) fn build_test_ca_int(
     (int_signing_key, int_cert)
 }
 
-pub(crate) fn build_test_csr(subject: &Name) -> (SigningKey, CertReq) {
-    let client_signing_key = SigningKey::generate();
+pub(crate) fn build_test_csr(subject: &Name) -> (EcdsaP384SigningKey, CertReq) {
+    let client_signing_key = EcdsaP384SigningKey::generate();
     let client_verifying_key = VerifyingKey::from(&client_signing_key);
 
     // Serialize with `::to_encoded_point()`
     // let int_pub_key =
     // SubjectPublicKeyInfoOwned::from_key(int_verifying_key).expect("get rsa pub key");
 
-    let builder = RequestBuilder::new(subject.clone())
-        .expect("Create certificate request");
+    let builder = RequestBuilder::new(subject.clone()).expect("Create certificate request");
 
     let client_cert_req = builder
-        .build::<_, DerSignature>(&client_signing_key)
+        .build::<EcdsaP384SigningKey, EcdsaP384DerSignature>(&client_signing_key)
         .expect("failed to build client certificate request");
 
     let client_cert_req_der = client_cert_req
@@ -490,8 +492,8 @@ pub(crate) fn build_test_csr(subject: &Name) -> (SigningKey, CertReq) {
         .signature
         .as_bytes()
         .expect("client CSR signature should be byte-aligned");
-    let client_cert_req_sig =
-        DerSignature::try_from(byte_sig).expect("failed to parse client CSR DER signature");
+    let client_cert_req_sig = EcdsaP384DerSignature::try_from(byte_sig)
+        .expect("failed to parse client CSR DER signature");
     assert!(extracted_public_key
         .verify(&req_bytes, &client_cert_req_sig)
         .is_ok());
@@ -506,7 +508,7 @@ pub(crate) fn test_ca_sign_client_csr(
     not_before: Time,
     not_after: Time,
     cert_req: &CertReq,
-    ca_signing_key: &SigningKey,
+    ca_signing_key: &EcdsaP384SigningKey,
     ca_cert: &CertificateInner,
 ) -> CertificateInner {
     let mut rng = rand::rng();
@@ -536,7 +538,7 @@ pub(crate) fn test_ca_sign_client_csr(
         issuer: ca_cert.tbs_certificate().subject().clone(),
         client_auth: false,
         tls12_options: Default::default(),
-        enable_data_encipherment: Default::default()
+        enable_data_encipherment: Default::default(),
     };
 
     let client_cert_subject = cert_req.info.subject.clone();
@@ -571,7 +573,7 @@ pub(crate) fn test_ca_sign_client_csr(
         .expect("Unable to add extension");
 
     let client_cert = builder
-        .build::<_, DerSignature>(&ca_signing_key)
+        .build::<EcdsaP384SigningKey, EcdsaP384DerSignature>(&ca_signing_key)
         .expect("failed to build client certificate");
 
     // let client_cert_der = client_cert
@@ -698,7 +700,10 @@ pub(crate) fn test_ca_sign_client_csr(
 
     assert_eq!(client_serial_uuid, verify_serial);
     //   Subject
-    assert_eq!(&client_cert_subject, client_cert.tbs_certificate().subject());
+    assert_eq!(
+        &client_cert_subject,
+        client_cert.tbs_certificate().subject()
+    );
 
     client_cert
 }
@@ -707,7 +712,7 @@ pub(crate) fn test_ca_sign_server_csr(
     not_before: Time,
     not_after: Time,
     cert_req: &CertReq,
-    ca_signing_key: &SigningKey,
+    ca_signing_key: &EcdsaP384SigningKey,
     ca_cert: &CertificateInner,
 ) -> CertificateInner {
     let mut rng = rand::rng();
@@ -738,7 +743,6 @@ pub(crate) fn test_ca_sign_server_csr(
         client_auth: false,
         tls12_options: Default::default(),
         enable_data_encipherment: Default::default(),
-
     };
 
     let server_cert_subject = cert_req.info.subject.clone();
@@ -772,7 +776,7 @@ pub(crate) fn test_ca_sign_server_csr(
         .expect("Unable to add extension");
 
     let server_cert = builder
-        .build::<_, DerSignature>(&ca_signing_key)
+        .build::<EcdsaP384SigningKey, EcdsaP384DerSignature>(&ca_signing_key)
         .expect("Failed to build server certificate");
 
     // let server_cert_der = server_cert
@@ -904,7 +908,10 @@ pub(crate) fn test_ca_sign_server_csr(
 
     assert_eq!(server_serial_uuid, verify_serial);
     //   Subject
-    assert_eq!(&server_cert_subject, server_cert.tbs_certificate().subject());
+    assert_eq!(
+        &server_cert_subject,
+        server_cert.tbs_certificate().subject()
+    );
 
     server_cert
 }

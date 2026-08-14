@@ -27,7 +27,7 @@ crypto-common = { version = "0.2.2", features = ["rand_core"] }
 der = "0.8.1"
 digest = { version = "0.11.0", default-features = false, features = ["mac"] }
 # dhkem = "0.0.1-alpha"
-ecdsa = { version = "0.17", features = ["digest", "der"] }
+ecdsa = { version = "0.17", features = ["digest", "der", "pem"] }
 elliptic-curve = { version = "0.14.1", features = ["arithmetic", "sec1"] }
 spki = "0.8"
 hybrid-array = { version = "0.4", features = ["serde", "zeroize"] }
@@ -41,7 +41,6 @@ p521 = "0.14"
 pbkdf2 = "0.13"
 pkcs8 = { version = "0.11", features = ["encryption"] }
 rand = "0.10"
-# rsa = { version = "0.9.10", features = ["sha2", "pem"] }
 rsa = { version = "0.10.0-rc.18", features = ["sha2"] }
 
 sec1 = "0.8.1"
@@ -55,10 +54,6 @@ sha2 = "0.11"
 subtle = "^2.6.1"
 tracing = "^0.1.37"
 
-## WARNING - 0.14.8 and above introduces a deprecation warning to ALL functions in generic-array.
-##           We can't really do much about it until the rustCrypto ecosystem either upgrades to
-##           1.x, or they complete their move to their "hybrid-array" crate.
-# generic-array = { version = "=0.14.7", features = ["serde", "zeroize"] }
 zeroize = { version = "1.6.0", features = ["serde"] }
 
 uuid = { version = "1", features = ["v4"] }

@@ -33,11 +33,7 @@ mod test_ca;
 
 pub mod traits {
     pub use aes_gcm::aead::AeadInOut;
-    pub use crypto_common::{
-        KeyInit,
-        OutputSizeUser,
-        Generate,
-    };
+    pub use crypto_common::{Generate, KeyInit, OutputSizeUser};
     pub use der::{
         pem::LineEnding as LineEndingPem, referenced::OwnedToRef, Decode as DecodeDer, DecodePem,
         Encode as EncodeDer, EncodePem,
@@ -292,7 +288,8 @@ pub mod aes128 {
     }
 
     pub fn key_from_slice(bytes: &[u8]) -> Option<Aes128Key> {
-        Key::<aes::Aes128>::try_from(bytes).ok()
+        Key::<aes::Aes128>::try_from(bytes)
+            .ok()
             .map(|key| key.into())
     }
 
@@ -348,7 +345,8 @@ pub mod aes256 {
     }
 
     pub fn key_from_slice(bytes: &[u8]) -> Option<Aes256Key> {
-        Key::<aes::Aes256>::try_from(bytes).ok()
+        Key::<aes::Aes256>::try_from(bytes)
+            .ok()
             .map(|key| key.into())
     }
 
@@ -396,7 +394,7 @@ pub mod aes256cbc {
 
     pub use crate::aes256::Aes256Key;
 
-    pub use aes::cipher::{block_padding, KeyIvInit, BlockModeDecrypt, BlockModeEncrypt};
+    pub use aes::cipher::{block_padding, BlockModeDecrypt, BlockModeEncrypt, KeyIvInit};
 
     pub type Aes256CbcEnc = cbc::Encryptor<aes::Aes256>;
     pub type Aes256CbcDec = cbc::Decryptor<aes::Aes256>;
@@ -415,9 +413,9 @@ pub mod aes256cbc {
     where
         P: block_padding::Padding,
     {
-        use hmac::Mac;
         use cipher::BlockModeEncrypt;
         use cipher::KeyInit;
+        use hmac::Mac;
 
         let iv = new_iv();
         let enc = Aes256CbcEnc::new(key, &iv);
@@ -440,9 +438,9 @@ pub mod aes256cbc {
     where
         P: block_padding::Padding,
     {
-        use hmac::Mac;
         use cipher::BlockModeDecrypt;
         use cipher::KeyInit;
+        use hmac::Mac;
 
         let mut hmac = HmacSha256::new_from_slice(key.as_slice()).ok()?;
         hmac.update(ciphertext);
@@ -553,8 +551,8 @@ pub mod ecdsa_p256 {
     use elliptic_curve::sec1::FromSec1Point;
     use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
-    use p256::{ecdsa::DerSignature, NistP256};
     use hybrid_array::{sizes::U32, Array};
+    use p256::{ecdsa::DerSignature, NistP256};
 
     pub type EcdsaP256Digest = <NistP256 as DigestAlgorithm>::Digest;
 
@@ -781,7 +779,7 @@ mod tests {
     )]
     fn hmac_256_basic() {
         use crate::hmac_s256::*;
-        use crate::traits::{Mac, KeyInit};
+        use crate::traits::{KeyInit, Mac};
 
         let hmac_key = new_key();
 
@@ -1129,7 +1127,6 @@ mod tests {
 
         // let provider = Arc::new(rustls_rustcrypto::provider());
         let provider = Arc::new(rustls::crypto::aws_lc_rs::default_provider());
-
 
         let client_tls_config: Arc<_> = ClientConfig::builder_with_provider(provider.clone())
             .with_safe_default_protocol_versions()
