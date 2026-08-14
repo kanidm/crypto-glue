@@ -278,7 +278,7 @@ impl X509Store {
         verify_der_signature(
             &cert_to_validate_data,
             cert_to_validate_signature,
-            &certificate_to_validate.signature_algorithm(),
+            certificate_to_validate.signature_algorithm(),
             authority,
         )?;
 

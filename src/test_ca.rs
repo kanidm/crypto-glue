@@ -14,6 +14,7 @@ use x509_cert::builder::profile::cabf::{
 use x509_cert::builder::{Builder, CertificateBuilder, RequestBuilder};
 use x509_cert::certificate::CertificateInner;
 use x509_cert::der::asn1::Ia5String;
+use x509_cert::der::flagset::FlagSet;
 use x509_cert::der::Encode;
 use x509_cert::ext::pkix::{
     constraints::name::GeneralSubtree,
@@ -218,8 +219,6 @@ pub(crate) fn build_test_ca_int(
     root_signing_key: &EcdsaP384SigningKey,
     root_ca_cert: &CertificateInner,
 ) -> (EcdsaP384SigningKey, CertificateInner) {
-    let mut rng = rand::rng();
-
     let root_verifying_key = VerifyingKey::from(root_signing_key); // Serialize with `::to_encoded_point()`
 
     let (_, root_subject_key_id) = root_ca_cert
@@ -511,8 +510,6 @@ pub(crate) fn test_ca_sign_client_csr(
     ca_signing_key: &EcdsaP384SigningKey,
     ca_cert: &CertificateInner,
 ) -> CertificateInner {
-    let mut rng = rand::rng();
-
     // The process of issuance at this point really is up to "what do we want to copy from the
     // csr and what don't we?".
 
@@ -533,15 +530,24 @@ pub(crate) fn test_ca_sign_client_csr(
 
     let validity = Validity::new(not_before, not_after);
 
+    let client_cert_subject = cert_req.info.subject.clone();
+
+    let alt_name = Name::from_str("ENTRYUUID=cb98d3d3-efcc-4675-ad40-435f6280d41b")
+        .expect("static client certificate directoryName SAN should be valid");
+
+    let names = vec![GeneralName::DirectoryName(alt_name)];
+
+    let certificate_type =
+        CertificateType::domain_validated(client_cert_subject.clone(), names.clone())
+            .expect("Unable to build certificate type");
+
     let profile = Subscriber {
-        certificate_type: CertificateType::OrganizationValidated,
+        certificate_type,
         issuer: ca_cert.tbs_certificate().subject().clone(),
-        client_auth: false,
+        client_auth: true,
         tls12_options: Default::default(),
         enable_data_encipherment: Default::default(),
     };
-
-    let client_cert_subject = cert_req.info.subject.clone();
 
     let spki = &cert_req.info.public_key;
 
@@ -557,16 +563,15 @@ pub(crate) fn test_ca_sign_client_csr(
     )
     .expect("Create certificate");
 
+    /*
     let eku_extension = ExtendedKeyUsage(vec![const_oid::db::rfc5280::ID_KP_CLIENT_AUTH]);
 
     builder
         .add_extension(&eku_extension)
         .expect("Unable to add extension");
+    */
 
-    let alt_name = Name::from_str("ENTRYUUID=cb98d3d3-efcc-4675-ad40-435f6280d41b")
-        .expect("static client certificate directoryName SAN should be valid");
-
-    let san = SubjectAltName(vec![GeneralName::DirectoryName(alt_name)]);
+    let san = SubjectAltName(names);
 
     builder
         .add_extension(&san)
@@ -610,8 +615,9 @@ pub(crate) fn test_ca_sign_client_csr(
     assert!(critical);
 
     eprintln!("{key_usage:?}");
-    let expected_key_usages =
-        KeyUsages::DigitalSignature | KeyUsages::NonRepudiation | KeyUsages::KeyEncipherment;
+    // These are no longer required
+    // KeyUsages::NonRepudiation | KeyUsages::KeyEncipherment;
+    let expected_key_usages: FlagSet<_> = KeyUsages::DigitalSignature.into();
     assert_eq!(key_usage, expected_key_usages.into());
 
     //   Extended Key Usage
@@ -623,7 +629,13 @@ pub(crate) fn test_ca_sign_client_csr(
         .expect("failed to get extensions")
         .expect("extended key usage not present");
 
-    assert_eq!(key_usage.0, vec![const_oid::db::rfc5280::ID_KP_CLIENT_AUTH]);
+    assert_eq!(
+        key_usage.0,
+        vec![
+            const_oid::db::rfc5280::ID_KP_SERVER_AUTH,
+            const_oid::db::rfc5280::ID_KP_CLIENT_AUTH
+        ]
+    );
 
     //   Authority Key ID
     //     (Should be sha256 of the signer public key)
@@ -651,7 +663,8 @@ pub(crate) fn test_ca_sign_client_csr(
         int_subject_key_id.as_ref()
     );
 
-    //   Subject Key ID
+    //   Subject Key ID - now ABSENT
+    /*
     let (_, client_subject_key_id) = client_cert
         .tbs_certificate()
         .get_extension::<SubjectKeyIdentifier>()
@@ -659,6 +672,7 @@ pub(crate) fn test_ca_sign_client_csr(
         .expect("key usage not present");
 
     eprintln!("{client_subject_key_id:?}");
+    */
 
     //   Validity
     assert_eq!(
@@ -715,8 +729,6 @@ pub(crate) fn test_ca_sign_server_csr(
     ca_signing_key: &EcdsaP384SigningKey,
     ca_cert: &CertificateInner,
 ) -> CertificateInner {
-    let mut rng = rand::rng();
-
     // The process of issuance at this point really is up to "what do we want to copy from the
     // csr and what don't we?".
 
@@ -737,15 +749,23 @@ pub(crate) fn test_ca_sign_server_csr(
 
     let validity = Validity::new(not_before, not_after);
 
+    let server_cert_subject = cert_req.info.subject.clone();
+
+    let alt_name = Ia5String::new("localhost").expect("static server DNS SAN should be valid");
+
+    let names = vec![GeneralName::DnsName(alt_name)];
+
+    let certificate_type =
+        CertificateType::domain_validated(server_cert_subject.clone(), names.clone())
+            .expect("Unable to build certificate type");
+
     let profile = Subscriber {
-        certificate_type: CertificateType::OrganizationValidated,
+        certificate_type,
         issuer: ca_cert.tbs_certificate().subject().clone(),
         client_auth: false,
         tls12_options: Default::default(),
         enable_data_encipherment: Default::default(),
     };
-
-    let server_cert_subject = cert_req.info.subject.clone();
 
     let spki = &cert_req.info.public_key;
 
@@ -761,15 +781,15 @@ pub(crate) fn test_ca_sign_server_csr(
     )
     .expect("Create certificate");
 
+    /*
     let eku_extension = ExtendedKeyUsage(vec![const_oid::db::rfc5280::ID_KP_SERVER_AUTH]);
 
     builder
         .add_extension(&eku_extension)
         .expect("Unable to add extension");
+    */
 
-    let alt_name = Ia5String::new("localhost").expect("static server DNS SAN should be valid");
-
-    let san = SubjectAltName(vec![GeneralName::DnsName(alt_name)]);
+    let san = SubjectAltName(names);
 
     builder
         .add_extension(&san)
@@ -816,10 +836,12 @@ pub(crate) fn test_ca_sign_server_csr(
     assert!(critical);
 
     eprintln!("{key_usage:?}");
-    let expected_key_usages = KeyUsages::DigitalSignature
+    let expected_key_usages: FlagSet<_> = KeyUsages::DigitalSignature.into();
+    /*
         | KeyUsages::NonRepudiation
         | KeyUsages::KeyAgreement
         | KeyUsages::KeyEncipherment;
+    */
     assert_eq!(key_usage, expected_key_usages.into());
 
     //   Extended Key Usage
@@ -859,7 +881,8 @@ pub(crate) fn test_ca_sign_server_csr(
         int_subject_key_id.as_ref()
     );
 
-    //   Subject Key ID
+    //   Subject Key ID - now ABSENT
+    /*
     let (_, server_subject_key_id) = server_cert
         .tbs_certificate()
         .get_extension::<SubjectKeyIdentifier>()
@@ -867,6 +890,7 @@ pub(crate) fn test_ca_sign_server_csr(
         .expect("key usage not present");
 
     eprintln!("{server_subject_key_id:?}");
+    */
 
     //   Validity
     assert_eq!(
