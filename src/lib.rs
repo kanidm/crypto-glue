@@ -1001,13 +1001,12 @@ mod tests {
 
         assert!(verifier.verify(&data, &sig).is_ok());
 
-        // Or you can sign a digest directly, must match the type from C::Digest.
-
-        let mut digest = EcdsaP256Digest::new();
-        digest.update(data);
-
+        // Or you can build the digest content directly, based on the type of the C::Digest value.
         let sig: EcdsaP256Signature = signer
-            .try_sign_digest(digest)
+            .try_sign_digest(|digest: &mut EcdsaP256Digest| {
+                digest.update(data);
+                Ok(())
+            })
             .expect("Failed to sign digest");
         assert!(verifier.verify(&data, &sig).is_ok());
     }
