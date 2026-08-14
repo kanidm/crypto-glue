@@ -318,6 +318,7 @@ dependencies = [
  "crypto-common 0.2.2",
  "der",
  "digest 0.11.3",
+ "ecdsa",
  "elliptic-curve",
  "getrandom 0.2.17",
  "hex",
