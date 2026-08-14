@@ -23,17 +23,17 @@ argon2 = { version = "0.5.2" }
 base64 = { version = "^0.23.1" }
 cbc = "0.2.1"
 cipher = { version = "0.5", features = ["block-padding", "alloc"] }
+const-oid = "0.10"
 crypto-common = { version = "0.2.2", features = ["rand_core"] }
 der = "0.8.1"
 digest = { version = "0.11.0", default-features = false, features = ["mac"] }
 ecdsa = { version = "0.17", features = ["digest", "der", "pem"] }
 elliptic-curve = { version = "0.14.1", features = ["arithmetic", "sec1"] }
-spki = "0.8"
 hybrid-array = { version = "0.4", features = ["serde", "zeroize"] }
 hex = "0.4.3"
 hkdf = "0.13"
 hmac = "0.13.0"
-
+kbkdf = { version = "0.1.0-rc.1" }
 p256 = { version = "0.14", features = ["ecdh", "pem"] }
 p384 = "0.14"
 p521 = "0.14"
@@ -41,23 +41,16 @@ pbkdf2 = "0.13"
 pkcs8 = { version = "0.11", features = ["encryption"] }
 rand = "0.10"
 rsa = { version = "0.10.0-rc.18", features = ["sha2"] }
-
 sec1 = "0.8.1"
-
-x509-cert = { version = "0.3", features = ["builder", "hazmat"] }
-const-oid = "0.10"
-
+spki = "0.8"
 serde = "^1.0.228"
 sha1 = "0.11"
 sha2 = "0.11"
 subtle = "^2.6.1"
 tracing = "^0.1.37"
-
-zeroize = { version = "1.6.0", features = ["serde"] }
-
 uuid = { version = "1", features = ["v4"] }
-
-kbkdf = { version = "0.1.0-rc.1" }
+x509-cert = { version = "0.3", features = ["builder", "hazmat"] }
+zeroize = { version = "1.6.0", features = ["serde"] }
 
 [dev-dependencies]
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "std"] }
