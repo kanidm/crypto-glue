@@ -1044,14 +1044,14 @@ mod tests {
         use crate::ecdsa_p256;
         use crate::traits::Pkcs8EncodePrivateKey;
 
-        use pkcs8::PrivateKeyInfo;
+        use pkcs8::PrivateKeyInfoRef;
 
         let ecdsa_priv_key = ecdsa_p256::new_key();
         let ecdsa_priv_key_der = ecdsa_priv_key
             .to_pkcs8_der()
             .expect("Failed to encode ECDSA private key");
 
-        let priv_key_info = PrivateKeyInfo::try_from(ecdsa_priv_key_der.as_bytes())
+        let priv_key_info = PrivateKeyInfoRef::try_from(ecdsa_priv_key_der.as_bytes())
             .expect("Failed to parse private key info");
 
         eprintln!("{priv_key_info:?}");
