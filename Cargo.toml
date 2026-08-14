@@ -1,7 +1,7 @@
 [package]
 name = "crypto-glue"
 description = "A facade over the RustCrypto ecosystem"
-version = "0.1.18"
+version = "0.2.0"
 edition = "2021"
 license = "MPL-2.0"
 homepage = "https://github.com/kanidm/crypto-glue/"
@@ -26,8 +26,6 @@ cipher = { version = "0.5", features = ["block-padding", "alloc"] }
 crypto-common = { version = "0.2.2", features = ["rand_core"] }
 der = "0.8.1"
 digest = { version = "0.11.0", default-features = false, features = ["mac"] }
-# dhkem = "0.0.1-alpha"
-ecdsa = { version = "0.17", features = ["digest", "der", "pem"] }
 elliptic-curve = { version = "0.14.1", features = ["arithmetic", "sec1"] }
 spki = "0.8"
 hybrid-array = { version = "0.4", features = ["serde", "zeroize"] }
@@ -58,15 +56,7 @@ zeroize = { version = "1.6.0", features = ["serde"] }
 
 uuid = { version = "1", features = ["v4"] }
 
-# concat-kdf = { git = "https://github.com/RustCrypto/KDFs.git", rev = "b1d7fe67b3053deef498563adcf415ec631d1cd8" }
-# concat-kdf = "0.2.0-pre"
-
 kbkdf = { version = "0.1.0-rc.1" }
-# hmac-pre = { package = "hmac", version = "0.13.0-rc.5", default-features = false }
-# sha2-pre = { package = "sha2", version = "0.11.0-rc.5", default-features = false }
-# https://github.com/RustCrypto/password-hashes/issues/856
-# digest-pre = { package = "digest", version = "=0.11.0-rc.12", default-features = false, features = ["mac"] }
-# crypto-common-pre = { package = "crypto-common", version = "0.2.0-rc.15", features = ["rand_core"] }
 
 [dev-dependencies]
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "std"] }
