@@ -72,12 +72,11 @@ pub mod traits {
 pub mod x509;
 
 pub mod sha1 {
-    use generic_array::GenericArray;
-    use sha1::digest::consts::U20;
+    use hybrid_array::{sizes::U20, Array};
 
     pub use sha1::Sha1;
 
-    pub type Sha1Output = GenericArray<u8, U20>;
+    pub type Sha1Output = Array<u8, U20>;
 }
 
 pub mod s256 {
@@ -89,21 +88,19 @@ pub mod s256 {
 }
 
 pub mod s384 {
-    use generic_array::GenericArray;
-    use sha2::digest::consts::U48;
+    use hybrid_array::{sizes::U48, Array};
 
     pub use sha2::Sha384;
 
-    pub type Sha384Output = GenericArray<u8, U48>;
+    pub type Sha384Output = Array<u8, U48>;
 }
 
 pub mod s512 {
-    use generic_array::GenericArray;
-    use sha2::digest::consts::U64;
+    use hybrid_array::{sizes::U64, Array};
 
     pub use sha2::Sha512;
 
-    pub type Sha512Output = GenericArray<u8, U64>;
+    pub type Sha512Output = Array<u8, U64>;
 }
 
 pub mod hkdf_s256 {
@@ -329,14 +326,13 @@ pub mod aes128gcm {
 }
 
 pub mod aes128kw {
-    use aes::cipher::consts::U24;
-    use generic_array::GenericArray;
+    use hybrid_array::{sizes::U24, Array};
 
     pub use crypto_common::KeyInit;
 
     pub type Aes128Kw = aes_kw::KwAes128;
 
-    pub type Aes128KwWrapped = GenericArray<u8, U24>;
+    pub type Aes128KwWrapped = Array<u8, U24>;
 }
 
 pub mod aes256 {
@@ -465,14 +461,13 @@ pub mod aes256cbc {
 }
 
 pub mod aes256kw {
-    use aes::cipher::consts::U40;
-    use generic_array::GenericArray;
+    use hybrid_array::{sizes::U40, Array};
 
     pub use crypto_common::KeyInit;
 
     pub type Aes256Kw = aes_kw::KwAes256;
 
-    pub type Aes256KwWrapped = GenericArray<u8, U40>;
+    pub type Aes256KwWrapped = Array<u8, U40>;
 }
 
 pub mod rsa {
@@ -558,9 +553,8 @@ pub mod ecdsa_p256 {
     use elliptic_curve::sec1::FromSec1Point;
     use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
-    use generic_array::GenericArray;
     use p256::{ecdsa::DerSignature, NistP256};
-    use sha2::digest::consts::U32;
+    use hybrid_array::{sizes::U32, Array};
 
     pub type EcdsaP256Digest = <NistP256 as DigestAlgorithm>::Digest;
 
@@ -573,7 +567,7 @@ pub mod ecdsa_p256 {
 
     pub type EcdsaP256PublicKey = PublicKey<NistP256>;
 
-    pub type EcdsaP256PublicCoordinate = GenericArray<u8, U32>;
+    pub type EcdsaP256PublicCoordinate = Array<u8, U32>;
     pub type EcdsaP256PublicSec1Point = Sec1Point<NistP256>;
 
     pub type EcdsaP256SigningKey = SigningKey<NistP256>;
@@ -616,7 +610,6 @@ pub mod ecdsa_p384 {
     use elliptic_curve::sec1::FromSec1Point;
     use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
-    // use generic_array::GenericArray;
     use p384::{ecdsa::DerSignature, NistP384};
     // use sha2::digest::consts::U32;
 
@@ -671,9 +664,7 @@ pub mod ecdsa_p521 {
     use elliptic_curve::sec1::FromSec1Point;
     use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
-    // use generic_array::GenericArray;
     use p521::{ecdsa::DerSignature, NistP521};
-    // use sha2::digest::consts::U32;
 
     pub type EcdsaP521Digest = <NistP521 as DigestAlgorithm>::Digest;
 

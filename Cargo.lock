@@ -320,7 +320,6 @@ dependencies = [
  "digest 0.11.3",
  "ecdsa",
  "elliptic-curve",
- "generic-array",
  "getrandom 0.2.17",
  "hex",
  "hkdf",
@@ -551,10 +550,8 @@ version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a"
 dependencies = [
- "serde",
  "typenum",
  "version_check",
- "zeroize",
 ]
 
 [[package]]
