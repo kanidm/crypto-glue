@@ -14,7 +14,7 @@ pub use const_oid::db as oiddb;
 pub use const_oid::{AssociatedOid, ObjectIdentifier};
 pub use der::asn1::{BitString, GeneralizedTime, Ia5String, OctetString};
 pub use x509_cert::builder::RequestBuilder as CertificateRequestBuilder;
-pub use x509_cert::builder::{Builder, CertificateBuilder, Profile};
+pub use x509_cert::builder::{Builder, CertificateBuilder, Profile, profile};
 pub use x509_cert::certificate::{Certificate, Version};
 pub use x509_cert::ext::pkix::name::{DistributionPointName, GeneralName, OtherName};
 pub use x509_cert::ext::pkix::{
