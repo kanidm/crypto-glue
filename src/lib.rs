@@ -32,14 +32,13 @@ pub mod prelude {}
 mod test_ca;
 
 pub mod traits {
-    pub use aes_gcm::aead::AeadInPlace;
-    pub use crypto_common::KeyInit;
-    pub use crypto_common::OutputSizeUser;
+    pub use aes_gcm::aead::AeadInOut;
+    pub use crypto_common::{Generate, KeyInit, OutputSizeUser};
     pub use der::{
         pem::LineEnding as LineEndingPem, referenced::OwnedToRef, Decode as DecodeDer, DecodePem,
         Encode as EncodeDer, EncodePem,
     };
-    pub use elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
+    pub use elliptic_curve::sec1::{FromSec1Point, ToSec1Point};
     pub use hmac::{Hmac, Mac};
     pub use pkcs8::{
         DecodePrivateKey as Pkcs8DecodePrivateKey, EncodePrivateKey as Pkcs8EncodePrivateKey,
@@ -69,39 +68,35 @@ pub mod traits {
 pub mod x509;
 
 pub mod sha1 {
-    use generic_array::GenericArray;
-    use sha1::digest::consts::U20;
+    use hybrid_array::{sizes::U20, Array};
 
     pub use sha1::Sha1;
 
-    pub type Sha1Output = GenericArray<u8, U20>;
+    pub type Sha1Output = Array<u8, U20>;
 }
 
 pub mod s256 {
-    use generic_array::GenericArray;
-    use sha2::digest::consts::U32;
+    use hybrid_array::{sizes::U32, Array};
 
     pub use sha2::Sha256;
 
-    pub type Sha256Output = GenericArray<u8, U32>;
+    pub type Sha256Output = Array<u8, U32>;
 }
 
 pub mod s384 {
-    use generic_array::GenericArray;
-    use sha2::digest::consts::U48;
+    use hybrid_array::{sizes::U48, Array};
 
     pub use sha2::Sha384;
 
-    pub type Sha384Output = GenericArray<u8, U48>;
+    pub type Sha384Output = Array<u8, U48>;
 }
 
 pub mod s512 {
-    use generic_array::GenericArray;
-    use sha2::digest::consts::U64;
+    use hybrid_array::{sizes::U64, Array};
 
     pub use sha2::Sha512;
 
-    pub type Sha512Output = GenericArray<u8, U64>;
+    pub type Sha512Output = Array<u8, U64>;
 }
 
 pub mod hkdf_s256 {
@@ -130,13 +125,13 @@ pub mod hmac_s1 {
     pub type HmacSha1Bytes = Output<HmacSha1>;
 
     pub fn new_key() -> HmacSha1Key {
-        use crypto_common::KeyInit;
-
-        let mut rng = rand::thread_rng();
-        HmacSha1::generate_key(&mut rng).into()
+        use crypto_common::Generate;
+        Key::<HmacSha1>::generate().into()
     }
 
     pub fn oneshot(key: &HmacSha1Key, data: &[u8]) -> HmacSha1Output {
+        use crypto_common::KeyInit;
+
         let mut hmac = HmacSha1::new(key);
         hmac.update(data);
         hmac.finalize()
@@ -189,13 +184,13 @@ pub mod hmac_s256 {
     pub type HmacSha256Bytes = Output<HmacSha256>;
 
     pub fn new_key() -> HmacSha256Key {
-        use crypto_common::KeyInit;
-
-        let mut rng = rand::thread_rng();
-        HmacSha256::generate_key(&mut rng).into()
+        use crypto_common::Generate;
+        Key::<HmacSha256>::generate().into()
     }
 
     pub fn oneshot(key: &HmacSha256Key, data: &[u8]) -> HmacSha256Output {
+        use crypto_common::KeyInit;
+
         let mut hmac = HmacSha256::new(key);
         hmac.update(data);
         hmac.finalize()
@@ -249,13 +244,13 @@ pub mod hmac_s512 {
     pub type HmacSha512Bytes = Output<HmacSha512>;
 
     pub fn new_hmac_sha512_key() -> HmacSha512Key {
-        use crypto_common::KeyInit;
-
-        let mut rng = rand::thread_rng();
-        HmacSha512::generate_key(&mut rng).into()
+        use crypto_common::Generate;
+        Key::<HmacSha512>::generate().into()
     }
 
     pub fn oneshot(key: &HmacSha512Key, data: &[u8]) -> HmacSha512Output {
+        use crypto_common::KeyInit;
+
         let mut hmac = HmacSha512::new(key);
         hmac.update(data);
         hmac.finalize()
@@ -283,7 +278,6 @@ pub mod hmac_s512 {
 pub mod aes128 {
     use aes;
     use crypto_common::Key;
-    use crypto_common::KeyInit;
     use zeroize::Zeroizing;
 
     pub type Aes128Key = Zeroizing<Key<aes::Aes128>>;
@@ -294,7 +288,9 @@ pub mod aes128 {
     }
 
     pub fn key_from_slice(bytes: &[u8]) -> Option<Aes128Key> {
-        Key::<aes::Aes128>::from_exact_iter(bytes.iter().copied()).map(|key| key.into())
+        Key::<aes::Aes128>::try_from(bytes)
+            .ok()
+            .map(|key| key.into())
     }
 
     pub fn key_from_bytes(bytes: [u8; 16]) -> Aes128Key {
@@ -302,50 +298,43 @@ pub mod aes128 {
     }
 
     pub fn new_key() -> Aes128Key {
-        let mut rng = rand::thread_rng();
-        aes::Aes128::generate_key(&mut rng).into()
+        use crypto_common::Generate;
+        Key::<aes::Aes128>::generate().into()
     }
 }
 
 pub mod aes128gcm {
     use aes::cipher::consts::{U12, U16};
-    // use aes::Aes128;
-    use aes_gcm::aead::AeadCore;
-    // use aes_gcm::AesGcm;
-    use generic_array::GenericArray;
 
-    pub use aes_gcm::aead::{Aead, AeadInPlace, Payload};
+    pub use aes_gcm::aead::{Aead, AeadInOut, Payload};
     pub use crypto_common::KeyInit;
 
     pub use crate::aes128::Aes128Key;
 
-    // Same as  AesGcm<Aes256, U12, U16>;
     pub type Aes128Gcm = aes_gcm::Aes128Gcm;
 
-    pub type Aes128GcmNonce = GenericArray<u8, U12>;
-    pub type Aes128GcmTag = GenericArray<u8, U16>;
+    pub type Aes128GcmNonce = aes_gcm::Nonce<U12>;
+    pub type Aes128GcmTag = aes_gcm::Tag<U16>;
 
     pub fn new_nonce() -> Aes128GcmNonce {
-        let mut rng = rand::thread_rng();
-        Aes128Gcm::generate_nonce(&mut rng)
+        use crypto_common::Generate;
+        Aes128GcmNonce::generate()
     }
 }
 
 pub mod aes128kw {
-    use aes::cipher::consts::U24;
-    use generic_array::GenericArray;
+    use hybrid_array::{sizes::U24, Array};
 
     pub use crypto_common::KeyInit;
 
-    pub type Aes128Kw = aes_kw::KekAes128;
+    pub type Aes128Kw = aes_kw::KwAes128;
 
-    pub type Aes128KwWrapped = GenericArray<u8, U24>;
+    pub type Aes128KwWrapped = Array<u8, U24>;
 }
 
 pub mod aes256 {
     use aes;
     use crypto_common::Key;
-    use crypto_common::KeyInit;
     use zeroize::Zeroizing;
 
     pub type Aes256Key = Zeroizing<Key<aes::Aes256>>;
@@ -356,11 +345,9 @@ pub mod aes256 {
     }
 
     pub fn key_from_slice(bytes: &[u8]) -> Option<Aes256Key> {
-        Key::<aes::Aes256>::from_exact_iter(bytes.iter().copied()).map(|key| key.into())
-    }
-
-    pub fn key_from_vec(bytes: Vec<u8>) -> Option<Aes256Key> {
-        Key::<aes::Aes256>::from_exact_iter(bytes).map(|key| key.into())
+        Key::<aes::Aes256>::try_from(bytes)
+            .ok()
+            .map(|key| key.into())
     }
 
     pub fn key_from_bytes(bytes: [u8; 32]) -> Aes256Key {
@@ -368,19 +355,18 @@ pub mod aes256 {
     }
 
     pub fn new_key() -> Aes256Key {
-        let mut rng = rand::thread_rng();
-        aes::Aes256::generate_key(&mut rng).into()
+        use crypto_common::Generate;
+        Key::<aes::Aes256>::generate().into()
     }
 }
 
 pub mod aes256gcm {
     use aes::cipher::consts::{U12, U16};
     use aes::Aes256;
-    use aes_gcm::aead::AeadCore;
+    // use aes_gcm::aead::AeadCore;
     use aes_gcm::AesGcm;
-    use generic_array::GenericArray;
 
-    pub use aes_gcm::aead::{Aead, AeadInPlace, Payload};
+    pub use aes_gcm::aead::{Aead, AeadInOut, Payload};
     pub use crypto_common::KeyInit;
 
     pub use crate::aes256::Aes256Key;
@@ -389,16 +375,14 @@ pub mod aes256gcm {
     pub type Aes256Gcm = aes_gcm::Aes256Gcm;
 
     pub type Aes256GcmN16 = AesGcm<Aes256, U16, U16>;
-    pub type Aes256GcmNonce16 = GenericArray<u8, U16>;
+    pub type Aes256GcmNonce16 = aes_gcm::Nonce<U16>;
 
-    pub type Aes256GcmNonce = GenericArray<u8, U12>;
-
-    pub type Aes256GcmTag = GenericArray<u8, U16>;
+    pub type Aes256GcmNonce = aes_gcm::Nonce<U12>;
+    pub type Aes256GcmTag = aes_gcm::Tag<U16>;
 
     pub fn new_nonce() -> Aes256GcmNonce {
-        let mut rng = rand::thread_rng();
-
-        Aes256Gcm::generate_nonce(&mut rng)
+        use crypto_common::Generate;
+        Aes256GcmNonce::generate()
     }
 }
 
@@ -406,20 +390,20 @@ pub mod aes256cbc {
     use crate::hmac_s256::HmacSha256;
     use crate::hmac_s256::HmacSha256Output;
     use aes::cipher::consts::U16;
-    use generic_array::GenericArray;
+    use aes::cipher::Array;
 
     pub use crate::aes256::Aes256Key;
 
-    pub use aes::cipher::{block_padding, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
+    pub use aes::cipher::{block_padding, BlockModeDecrypt, BlockModeEncrypt, KeyIvInit};
 
     pub type Aes256CbcEnc = cbc::Encryptor<aes::Aes256>;
     pub type Aes256CbcDec = cbc::Decryptor<aes::Aes256>;
 
-    pub type Aes256CbcIv = GenericArray<u8, U16>;
+    pub type Aes256CbcIv = Array<u8, U16>;
 
     pub fn new_iv() -> Aes256CbcIv {
-        let mut rng = rand::thread_rng();
-        Aes256CbcEnc::generate_iv(&mut rng)
+        use crypto_common::Generate;
+        Aes256CbcIv::generate()
     }
 
     pub fn enc<P>(
@@ -427,14 +411,16 @@ pub mod aes256cbc {
         data: &[u8],
     ) -> Result<(HmacSha256Output, Aes256CbcIv, Vec<u8>), crypto_common::InvalidLength>
     where
-        P: block_padding::Padding<<aes::Aes256 as crypto_common::BlockSizeUser>::BlockSize>,
+        P: block_padding::Padding,
     {
+        use cipher::BlockModeEncrypt;
+        use cipher::KeyInit;
         use hmac::Mac;
 
         let iv = new_iv();
         let enc = Aes256CbcEnc::new(key, &iv);
 
-        let ciphertext = enc.encrypt_padded_vec_mut::<P>(data);
+        let ciphertext = enc.encrypt_padded_vec::<P>(data);
 
         let mut hmac = HmacSha256::new_from_slice(key.as_slice())?;
         hmac.update(&ciphertext);
@@ -450,8 +436,10 @@ pub mod aes256cbc {
         ciphertext: &[u8],
     ) -> Option<Vec<u8>>
     where
-        P: block_padding::Padding<<aes::Aes256 as crypto_common::BlockSizeUser>::BlockSize>,
+        P: block_padding::Padding,
     {
+        use cipher::BlockModeDecrypt;
+        use cipher::KeyInit;
         use hmac::Mac;
 
         let mut hmac = HmacSha256::new_from_slice(key.as_slice()).ok()?;
@@ -464,21 +452,20 @@ pub mod aes256cbc {
 
         let dec = Aes256CbcDec::new(key, iv);
 
-        let plaintext = dec.decrypt_padded_vec_mut::<P>(ciphertext).ok()?;
+        let plaintext = dec.decrypt_padded_vec::<P>(ciphertext).ok()?;
 
         Some(plaintext)
     }
 }
 
 pub mod aes256kw {
-    use aes::cipher::consts::U40;
-    use generic_array::GenericArray;
+    use hybrid_array::{sizes::U40, Array};
 
     pub use crypto_common::KeyInit;
 
-    pub type Aes256Kw = aes_kw::KekAes256;
+    pub type Aes256Kw = aes_kw::KwAes256;
 
-    pub type Aes256KwWrapped = GenericArray<u8, U40>;
+    pub type Aes256KwWrapped = Array<u8, U40>;
 }
 
 pub mod rsa {
@@ -486,7 +473,7 @@ pub mod rsa {
     use rsa::{RsaPrivateKey, RsaPublicKey};
 
     pub use rand;
-    pub use rsa::BigUint;
+    pub use rsa::BoxedUint as BigUint;
     pub use rsa::{pkcs1v15, Oaep};
     pub use sha2::Sha256;
 
@@ -501,7 +488,7 @@ pub mod rsa {
 
     pub fn new_key(bits: usize) -> rsa::errors::Result<RsaPrivateKey> {
         let bits = std::cmp::max(bits, MIN_BITS);
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         RsaPrivateKey::new(&mut rng, bits)
     }
 
@@ -509,8 +496,8 @@ pub mod rsa {
         public_key: &RsaPublicKey,
         data: &[u8],
     ) -> rsa::errors::Result<Vec<u8>> {
-        let mut rng = rand::thread_rng();
-        let padding = Oaep::new::<Sha256>();
+        let mut rng = rand::rng();
+        let padding = Oaep::<Sha256>::new();
         public_key.encrypt(&mut rng, padding, data)
     }
 
@@ -518,7 +505,7 @@ pub mod rsa {
         private_key: &RsaPrivateKey,
         ciphertext: &[u8],
     ) -> rsa::errors::Result<Vec<u8>> {
-        let padding = Oaep::new::<Sha256>();
+        let padding = Oaep::<Sha256>::new();
         private_key.decrypt(padding, ciphertext)
     }
 }
@@ -533,54 +520,51 @@ pub mod ecdh {
 
 pub mod ecdh_p256 {
     use elliptic_curve::ecdh::{EphemeralSecret, SharedSecret};
-    use elliptic_curve::sec1::EncodedPoint;
+    use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::{FieldBytes, PublicKey};
     use hkdf::Hkdf;
-    use hmac::SimpleHmac;
     use p256::NistP256;
     use sha2::Sha256;
 
     pub type EcdhP256EphemeralSecret = EphemeralSecret<NistP256>;
     pub type EcdhP256SharedSecret = SharedSecret<NistP256>;
     pub type EcdhP256PublicKey = PublicKey<NistP256>;
-    pub type EcdhP256PublicEncodedPoint = EncodedPoint<NistP256>;
+    pub type EcdhP256PublicSec1Point = Sec1Point<NistP256>;
     pub type EcdhP256FieldBytes = FieldBytes<NistP256>;
 
-    pub type EcdhP256Hkdf = Hkdf<Sha256, SimpleHmac<Sha256>>;
+    pub type EcdhP256Hkdf = Hkdf<Sha256>;
 
     pub type EcdhP256Digest = Sha256;
 
     pub fn new_secret() -> EcdhP256EphemeralSecret {
-        let mut rng = rand::thread_rng();
-        EcdhP256EphemeralSecret::random(&mut rng)
+        use crypto_common::Generate;
+        EcdhP256EphemeralSecret::generate()
     }
 }
 
 pub mod ecdsa_p256 {
-    use ecdsa::hazmat::DigestPrimitive;
+    use ecdsa::DigestAlgorithm;
     use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
     use elliptic_curve::point::AffinePoint;
-    use elliptic_curve::scalar::{NonZeroScalar, ScalarPrimitive};
-    use elliptic_curve::sec1::EncodedPoint;
-    use elliptic_curve::sec1::FromEncodedPoint;
+    use elliptic_curve::scalar::NonZeroScalar;
+    use elliptic_curve::sec1::FromSec1Point;
+    use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
-    use generic_array::GenericArray;
+    use hybrid_array::{sizes::U32, Array};
     use p256::{ecdsa::DerSignature, NistP256};
-    use sha2::digest::consts::U32;
 
-    pub type EcdsaP256Digest = <NistP256 as DigestPrimitive>::Digest;
+    pub type EcdsaP256Digest = <NistP256 as DigestAlgorithm>::Digest;
 
     pub type EcdsaP256PrivateKey = SecretKey<NistP256>;
     pub type EcdsaP256NonZeroScalar = NonZeroScalar<NistP256>;
-    pub type EcdsaP256ScalarPrimitive = ScalarPrimitive<NistP256>;
 
     pub type EcdsaP256FieldBytes = FieldBytes<NistP256>;
     pub type EcdsaP256AffinePoint = AffinePoint<NistP256>;
 
     pub type EcdsaP256PublicKey = PublicKey<NistP256>;
 
-    pub type EcdsaP256PublicCoordinate = GenericArray<u8, U32>;
-    pub type EcdsaP256PublicEncodedPoint = EncodedPoint<NistP256>;
+    pub type EcdsaP256PublicCoordinate = Array<u8, U32>;
+    pub type EcdsaP256PublicSec1Point = Sec1Point<NistP256>;
 
     pub type EcdsaP256SigningKey = SigningKey<NistP256>;
     pub type EcdsaP256VerifyingKey = VerifyingKey<NistP256>;
@@ -590,8 +574,9 @@ pub mod ecdsa_p256 {
     pub type EcdsaP256SignatureBytes = SignatureBytes<NistP256>;
 
     pub fn new_key() -> EcdsaP256PrivateKey {
-        let mut rng = rand::thread_rng();
-        EcdsaP256PrivateKey::random(&mut rng)
+        use crypto_common::Generate;
+
+        EcdsaP256PrivateKey::generate()
     }
 
     pub fn from_coords_raw(x: &[u8], y: &[u8]) -> Option<EcdsaP256PublicKey> {
@@ -608,24 +593,23 @@ pub mod ecdsa_p256 {
         field_x.copy_from_slice(x);
         field_y.copy_from_slice(y);
 
-        let ep = EcdsaP256PublicEncodedPoint::from_affine_coordinates(&field_x, &field_y, false);
+        let ep = EcdsaP256PublicSec1Point::from_affine_coordinates(&field_x, &field_y, false);
 
-        EcdsaP256PublicKey::from_encoded_point(&ep).into_option()
+        EcdsaP256PublicKey::from_sec1_point(&ep).into_option()
     }
 }
 
 pub mod ecdsa_p384 {
-    use ecdsa::hazmat::DigestPrimitive;
+    use ecdsa::DigestAlgorithm;
     use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
     use elliptic_curve::point::AffinePoint;
-    use elliptic_curve::sec1::EncodedPoint;
-    use elliptic_curve::sec1::FromEncodedPoint;
+    use elliptic_curve::sec1::FromSec1Point;
+    use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
-    // use generic_array::GenericArray;
     use p384::{ecdsa::DerSignature, NistP384};
     // use sha2::digest::consts::U32;
 
-    pub type EcdsaP384Digest = <NistP384 as DigestPrimitive>::Digest;
+    pub type EcdsaP384Digest = <NistP384 as DigestAlgorithm>::Digest;
 
     pub type EcdsaP384PrivateKey = SecretKey<NistP384>;
 
@@ -635,7 +619,7 @@ pub mod ecdsa_p384 {
     pub type EcdsaP384PublicKey = PublicKey<NistP384>;
 
     // pub type EcdsaP384PublicCoordinate = GenericArray<u8, U32>;
-    pub type EcdsaP384PublicEncodedPoint = EncodedPoint<NistP384>;
+    pub type EcdsaP384PublicSec1Point = Sec1Point<NistP384>;
 
     pub type EcdsaP384SigningKey = SigningKey<NistP384>;
     pub type EcdsaP384VerifyingKey = VerifyingKey<NistP384>;
@@ -645,8 +629,8 @@ pub mod ecdsa_p384 {
     pub type EcdsaP384SignatureBytes = SignatureBytes<NistP384>;
 
     pub fn new_key() -> EcdsaP384PrivateKey {
-        let mut rng = rand::thread_rng();
-        EcdsaP384PrivateKey::random(&mut rng)
+        use crypto_common::Generate;
+        EcdsaP384PrivateKey::generate()
     }
 
     pub fn from_coords_raw(x: &[u8], y: &[u8]) -> Option<EcdsaP384PublicKey> {
@@ -663,24 +647,22 @@ pub mod ecdsa_p384 {
         field_x.copy_from_slice(x);
         field_y.copy_from_slice(y);
 
-        let ep = EcdsaP384PublicEncodedPoint::from_affine_coordinates(&field_x, &field_y, false);
+        let ep = EcdsaP384PublicSec1Point::from_affine_coordinates(&field_x, &field_y, false);
 
-        EcdsaP384PublicKey::from_encoded_point(&ep).into_option()
+        EcdsaP384PublicKey::from_sec1_point(&ep).into_option()
     }
 }
 
 pub mod ecdsa_p521 {
-    use ecdsa::hazmat::DigestPrimitive;
+    use ecdsa::DigestAlgorithm;
     use ecdsa::{Signature, SignatureBytes, SigningKey, VerifyingKey};
     use elliptic_curve::point::AffinePoint;
-    use elliptic_curve::sec1::EncodedPoint;
-    use elliptic_curve::sec1::FromEncodedPoint;
+    use elliptic_curve::sec1::FromSec1Point;
+    use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
-    // use generic_array::GenericArray;
     use p521::{ecdsa::DerSignature, NistP521};
-    // use sha2::digest::consts::U32;
 
-    pub type EcdsaP521Digest = <NistP521 as DigestPrimitive>::Digest;
+    pub type EcdsaP521Digest = <NistP521 as DigestAlgorithm>::Digest;
 
     pub type EcdsaP521PrivateKey = SecretKey<NistP521>;
 
@@ -690,7 +672,7 @@ pub mod ecdsa_p521 {
     pub type EcdsaP521PublicKey = PublicKey<NistP521>;
 
     // pub type EcdsaP521PublicCoordinate = GenericArray<u8, U32>;
-    pub type EcdsaP521PublicEncodedPoint = EncodedPoint<NistP521>;
+    pub type EcdsaP521PublicSec1Point = Sec1Point<NistP521>;
 
     pub type EcdsaP521SigningKey = SigningKey<NistP521>;
     pub type EcdsaP521VerifyingKey = VerifyingKey<NistP521>;
@@ -700,8 +682,8 @@ pub mod ecdsa_p521 {
     pub type EcdsaP521SignatureBytes = SignatureBytes<NistP521>;
 
     pub fn new_key() -> EcdsaP521PrivateKey {
-        let mut rng = rand::thread_rng();
-        EcdsaP521PrivateKey::random(&mut rng)
+        use crypto_common::Generate;
+        EcdsaP521PrivateKey::generate()
     }
 
     pub fn from_coords_raw(x: &[u8], y: &[u8]) -> Option<EcdsaP521PublicKey> {
@@ -718,19 +700,19 @@ pub mod ecdsa_p521 {
         field_x.copy_from_slice(x);
         field_y.copy_from_slice(y);
 
-        let ep = EcdsaP521PublicEncodedPoint::from_affine_coordinates(&field_x, &field_y, false);
+        let ep = EcdsaP521PublicSec1Point::from_affine_coordinates(&field_x, &field_y, false);
 
-        EcdsaP521PublicKey::from_encoded_point(&ep).into_option()
+        EcdsaP521PublicKey::from_sec1_point(&ep).into_option()
     }
 }
 
 pub mod nist_sp800_108_kdf_hmac_sha256 {
     use crate::traits::Zeroizing;
-    use crypto_common_pre::KeySizeUser;
-    use digest_pre::consts::*;
-    use hmac_pre::Hmac;
+    use crypto_common::KeySizeUser;
+    use digest::consts::*;
+    use hmac::Hmac;
     use kbkdf::{Counter, Kbkdf, Params};
-    use sha2_pre::Sha256;
+    use sha2::Sha256;
 
     struct MockOutput;
 
@@ -795,7 +777,7 @@ mod tests {
     )]
     fn hmac_256_basic() {
         use crate::hmac_s256::*;
-        use crate::traits::Mac;
+        use crate::traits::{KeyInit, Mac};
 
         let hmac_key = new_key();
 
@@ -813,6 +795,7 @@ mod tests {
     )]
     fn hmac_512_basic() {
         use crate::hmac_s512::*;
+        use cipher::KeyInit;
 
         let hmac_key = new_hmac_sha512_key();
 
@@ -859,11 +842,11 @@ mod tests {
         let associated_data = b"";
 
         let tag = cipher
-            .encrypt_in_place_detached(&nonce, associated_data, buffer.as_mut_slice())
+            .encrypt_inout_detached(&nonce, associated_data, buffer.as_mut_slice().into())
             .expect("Failed to encrypt message");
 
         cipher
-            .decrypt_in_place_detached(&nonce, associated_data, &mut buffer, &tag)
+            .decrypt_inout_detached(&nonce, associated_data, buffer.as_mut_slice().into(), &tag)
             .expect("Failed to decrypt message");
 
         assert_eq!(buffer, b"test message, super cool");
@@ -883,12 +866,12 @@ mod tests {
 
         let enc = aes256cbc::Aes256CbcEnc::new(&key, &iv);
 
-        let ciphertext = enc.encrypt_padded_vec_mut::<block_padding::Pkcs7>(b"plaintext message");
+        let ciphertext = enc.encrypt_padded_vec::<block_padding::Pkcs7>(b"plaintext message");
 
         let dec = aes256cbc::Aes256CbcDec::new(&key, &iv);
 
         let plaintext = dec
-            .decrypt_padded_vec_mut::<block_padding::Pkcs7>(&ciphertext)
+            .decrypt_padded_vec::<block_padding::Pkcs7>(&ciphertext)
             .expect("Unpadding Failed");
 
         assert_eq!(plaintext, b"plaintext message");
@@ -932,14 +915,14 @@ mod tests {
 
         // Wrap it.
         key_wrap
-            .wrap(&key_to_wrap, &mut wrapped_key)
+            .wrap_key(&key_to_wrap, &mut wrapped_key)
             .expect("Failed to wrap key");
         // Reverse the process
 
         let mut key_unwrapped = aes256::Aes256Key::default();
 
         key_wrap
-            .unwrap(&wrapped_key, &mut key_unwrapped)
+            .unwrap_key(&wrapped_key, &mut key_unwrapped)
             .expect("Failed to unwrap key");
 
         assert_eq!(key_to_wrap, key_unwrapped);
@@ -971,7 +954,7 @@ mod tests {
         let signing_key = RS256SigningKey::new(pkey);
         let verifying_key = RS256VerifyingKey::new(pubkey);
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         let data = b"Fully sick data to sign mate.";
 
@@ -1005,13 +988,12 @@ mod tests {
 
         assert!(verifier.verify(&data, &sig).is_ok());
 
-        // Or you can sign a digest directly, must match the type from C::Digest.
-
-        let mut digest = EcdsaP256Digest::new();
-        digest.update(data);
-
+        // Or you can build the digest content directly, based on the type of the C::Digest value.
         let sig: EcdsaP256Signature = signer
-            .try_sign_digest(digest)
+            .try_sign_digest(|digest: &mut EcdsaP256Digest| {
+                digest.update(data);
+                Ok(())
+            })
             .expect("Failed to sign digest");
         assert!(verifier.verify(&data, &sig).is_ok());
     }
@@ -1048,15 +1030,14 @@ mod tests {
         use crate::ecdsa_p256;
         use crate::traits::Pkcs8EncodePrivateKey;
 
-        // use pkcs8::SecretDocument;
-        use pkcs8::PrivateKeyInfo;
+        use pkcs8::PrivateKeyInfoRef;
 
         let ecdsa_priv_key = ecdsa_p256::new_key();
         let ecdsa_priv_key_der = ecdsa_priv_key
             .to_pkcs8_der()
             .expect("Failed to encode ECDSA private key");
 
-        let priv_key_info = PrivateKeyInfo::try_from(ecdsa_priv_key_der.as_bytes())
+        let priv_key_info = PrivateKeyInfoRef::try_from(ecdsa_priv_key_der.as_bytes())
             .expect("Failed to parse private key info");
 
         eprintln!("{priv_key_info:?}");
@@ -1142,7 +1123,8 @@ mod tests {
         let server_private_key: PrivateKeyDer =
             PrivatePkcs8KeyDer::from(server_private_key_pkcs8_der.as_bytes().to_vec()).into();
 
-        let provider = Arc::new(rustls_rustcrypto::provider());
+        // let provider = Arc::new(rustls_rustcrypto::provider());
+        let provider = Arc::new(rustls::crypto::aws_lc_rs::default_provider());
 
         let client_tls_config: Arc<_> = ClientConfig::builder_with_provider(provider.clone())
             .with_safe_default_protocol_versions()

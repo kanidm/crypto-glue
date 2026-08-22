@@ -32,14 +32,14 @@ impl fmt::Display for X509Display<'_> {
         writeln!(f, "--")?;
         writeln!(f, "Certificate:")?;
 
-        // cert.tbs_certificate
+        // cert.tbs_certificate()
         writeln!(f, "{:indent$}Data:", "", indent = INDENT)?;
 
         writeln!(
             f,
             "{:indent$}Version: {:?}",
             "",
-            self.cert.tbs_certificate.version,
+            self.cert.tbs_certificate().version(),
             indent = INDENT_TWO,
         )?;
 
@@ -48,7 +48,7 @@ impl fmt::Display for X509Display<'_> {
             f,
             "{}",
             BytesDisplay {
-                bytes: self.cert.tbs_certificate.serial_number.as_bytes(),
+                bytes: self.cert.tbs_certificate().serial_number().as_bytes(),
                 indent: INDENT_THREE
             }
         )?;
@@ -57,7 +57,7 @@ impl fmt::Display for X509Display<'_> {
             f,
             "{:indent$}Subject: {}",
             "",
-            self.cert.tbs_certificate.subject,
+            self.cert.tbs_certificate().subject(),
             indent = INDENT_TWO
         )?;
 
@@ -65,11 +65,11 @@ impl fmt::Display for X509Display<'_> {
             f,
             "{:indent$}Issuer: {}",
             "",
-            self.cert.tbs_certificate.issuer,
+            self.cert.tbs_certificate().issuer(),
             indent = INDENT_TWO
         )?;
 
-        if let Some(issuer_unique_id) = &self.cert.tbs_certificate.issuer_unique_id {
+        if let Some(issuer_unique_id) = &self.cert.tbs_certificate().issuer_unique_id() {
             writeln!(f, "{:indent$}Issuer Unique ID:", "", indent = INDENT_TWO)?;
             if let Some(bytes) = issuer_unique_id.as_bytes() {
                 writeln!(
@@ -85,7 +85,7 @@ impl fmt::Display for X509Display<'_> {
             }
         }
 
-        if let Some(subject_unique_id) = &self.cert.tbs_certificate.subject_unique_id {
+        if let Some(subject_unique_id) = &self.cert.tbs_certificate().subject_unique_id() {
             writeln!(f, "{:indent$}Subject Unique ID:", "", indent = INDENT_TWO)?;
             if let Some(bytes) = subject_unique_id.as_bytes() {
                 writeln!(
@@ -106,14 +106,14 @@ impl fmt::Display for X509Display<'_> {
             f,
             "{:indent$}Not Before: {}",
             "",
-            self.cert.tbs_certificate.validity.not_before,
+            self.cert.tbs_certificate().validity().not_before,
             indent = INDENT_THREE
         )?;
         writeln!(
             f,
             "{:indent$}Not After: {}",
             "",
-            self.cert.tbs_certificate.validity.not_after,
+            self.cert.tbs_certificate().validity().not_after,
             indent = INDENT_THREE
         )?;
 
@@ -123,7 +123,7 @@ impl fmt::Display for X509Display<'_> {
             "",
             indent = INDENT_TWO
         )?;
-        match &self.cert.tbs_certificate.signature.oid {
+        match &self.cert.tbs_certificate().signature().oid {
             &const_oid::db::rfc5912::ECDSA_WITH_SHA_256 => writeln!(f, "ecdsa-with-sha256")?,
             &const_oid::db::rfc5912::ECDSA_WITH_SHA_384 => writeln!(f, "ecdsa-with-sha384")?,
             &const_oid::db::rfc5912::ECDSA_WITH_SHA_512 => writeln!(f, "ecdsa-with-sha512")?,
@@ -140,8 +140,8 @@ impl fmt::Display for X509Display<'_> {
             SubjectPublicKeyDisplay {
                 spki: self
                     .cert
-                    .tbs_certificate
-                    .subject_public_key_info
+                    .tbs_certificate()
+                    .subject_public_key_info()
                     .owned_to_ref(),
                 indent: INDENT_TWO
             }
@@ -149,8 +149,8 @@ impl fmt::Display for X509Display<'_> {
 
         for extension in self
             .cert
-            .tbs_certificate
-            .extensions
+            .tbs_certificate()
+            .extensions()
             .iter()
             .flat_map(|exts| exts.iter())
         {
@@ -376,7 +376,7 @@ impl fmt::Display for X509Display<'_> {
         }
 
         write!(f, "{:indent$}Signature Algorithm: ", "", indent = INDENT)?;
-        match &self.cert.signature_algorithm.oid {
+        match &self.cert.signature_algorithm().oid {
             &const_oid::db::rfc5912::ECDSA_WITH_SHA_256 => writeln!(f, "ecdsa-with-sha256")?,
             &const_oid::db::rfc5912::ECDSA_WITH_SHA_384 => writeln!(f, "ecdsa-with-sha384")?,
             &const_oid::db::rfc5912::ECDSA_WITH_SHA_512 => writeln!(f, "ecdsa-with-sha512")?,
@@ -387,7 +387,7 @@ impl fmt::Display for X509Display<'_> {
         }
 
         writeln!(f, "{:indent$}Signature:", "", indent = INDENT)?;
-        if let Some(bytes) = self.cert.signature.as_bytes() {
+        if let Some(bytes) = self.cert.signature().as_bytes() {
             writeln!(
                 f,
                 "{}",

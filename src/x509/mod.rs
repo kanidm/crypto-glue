@@ -48,8 +48,8 @@ pub fn uuid_to_serial(serial_uuid: uuid::Uuid) -> SerialNumber {
 
 pub fn x509_digest_public_key_sha256(certificate: &Certificate) -> Option<Sha256Output> {
     let public_key_bytes = certificate
-        .tbs_certificate
-        .subject_public_key_info
+        .tbs_certificate()
+        .subject_public_key_info()
         .subject_public_key
         .as_bytes()?;
 
@@ -70,8 +70,8 @@ pub fn x509_verify_signature(
     certificate: &Certificate,
 ) -> Result<(), X509VerificationError> {
     let subject_public_key_info = certificate
-        .tbs_certificate
-        .subject_public_key_info
+        .tbs_certificate()
+        .subject_public_key_info()
         .owned_to_ref();
 
     match subject_public_key_info.algorithm.oids() {

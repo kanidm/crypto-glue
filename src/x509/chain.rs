@@ -134,8 +134,8 @@ impl X509Store {
         //   Basic Constraints: critical
         //     CA:FALSE
         let maybe_basic_constraints = certificate_to_validate
-            .tbs_certificate
-            .get::<BasicConstraints>()
+            .tbs_certificate()
+            .get_extension::<BasicConstraints>()
             .map_err(|_err| X509VerificationError::ExtensionFailure)?;
         // If not present, we act as if this is not a CA.
         // .ok_or(
@@ -149,8 +149,8 @@ impl X509Store {
         };
 
         let maybe_keyusage = certificate_to_validate
-            .tbs_certificate
-            .get::<KeyUsage>()
+            .tbs_certificate()
+            .get_extension::<KeyUsage>()
             .map_err(|_err| X509VerificationError::ExtensionFailure)?;
 
         if let Some((_critical, key_usage)) = maybe_keyusage {
@@ -163,8 +163,8 @@ impl X509Store {
 
         // Valid time range.
         let not_before = certificate_to_validate
-            .tbs_certificate
-            .validity
+            .tbs_certificate()
+            .validity()
             .not_before
             .to_unix_duration();
 
@@ -174,8 +174,8 @@ impl X509Store {
         }
 
         let not_after = certificate_to_validate
-            .tbs_certificate
-            .validity
+            .tbs_certificate()
+            .validity()
             .not_after
             .to_unix_duration();
 
@@ -194,7 +194,9 @@ impl X509Store {
         current_time: Duration,
         path_length: u8,
     ) -> Result<(), X509VerificationError> {
-        if authority.tbs_certificate.subject != certificate_to_validate.tbs_certificate.issuer {
+        if authority.tbs_certificate().subject()
+            != certificate_to_validate.tbs_certificate().issuer()
+        {
             return Err(X509VerificationError::InvalidIssuer);
         }
 
@@ -204,8 +206,8 @@ impl X509Store {
         //     pathlen:0  // indicates no subordinate CA's
 
         let (_critical, basic_constraints) = authority
-            .tbs_certificate
-            .get::<BasicConstraints>()
+            .tbs_certificate()
+            .get_extension::<BasicConstraints>()
             .map_err(|_err| X509VerificationError::ExtensionFailure)?
             // You are a CA, you must have this.
             .ok_or(X509VerificationError::BasicConstraintsNotPresent)?;
@@ -223,8 +225,8 @@ impl X509Store {
         }
 
         let (_critical, key_usage) = authority
-            .tbs_certificate
-            .get::<KeyUsage>()
+            .tbs_certificate()
+            .get_extension::<KeyUsage>()
             .map_err(|_err| X509VerificationError::ExtensionFailure)?
             .ok_or(X509VerificationError::KeyUsageNotPresent)?;
 
@@ -234,8 +236,8 @@ impl X509Store {
 
         // Valid time range.
         let not_before = authority
-            .tbs_certificate
-            .validity
+            .tbs_certificate()
+            .validity()
             .not_before
             .to_unix_duration();
 
@@ -244,8 +246,8 @@ impl X509Store {
         }
 
         let not_after = authority
-            .tbs_certificate
-            .validity
+            .tbs_certificate()
+            .validity()
             .not_after
             .to_unix_duration();
 
@@ -257,25 +259,26 @@ impl X509Store {
         // A reasonable person would assume that a CA can only issue certificates using the same
         // algorithm that it declares that it uses. However, that's simply just false, some
         // CA's, especially that use RSA, may use a different digest.
-        if certificate_to_validate.signature_algorithm != authority.tbs_certificate.signature {
-            warn!(?certificate_to_validate.signature_algorithm, ?authority.tbs_certificate.signature);
+        if certificate_to_validate.signature_algorithm() != authority.tbs_certificate().signature()
+        {
+            warn!(validate_signature = ?certificate_to_validate.signature_algorithm(), authority_signature = ?authority.tbs_certificate().signature());
             // return Err(X509VerificationError::SignatureAlgorithmMismatch);
         }
 
         let cert_to_validate_data = certificate_to_validate
-            .tbs_certificate
+            .tbs_certificate()
             .to_der()
             .map_err(|_err| X509VerificationError::CertificateSerialisation)?;
 
         let cert_to_validate_signature = certificate_to_validate
-            .signature
+            .signature()
             .as_bytes()
             .ok_or(X509VerificationError::DerSignatureInvalid)?;
 
         verify_der_signature(
             &cert_to_validate_data,
             cert_to_validate_signature,
-            &certificate_to_validate.signature_algorithm,
+            certificate_to_validate.signature_algorithm(),
             authority,
         )?;
 
@@ -289,7 +292,8 @@ impl X509Store {
         self.store
             .iter()
             .find(|ca_cert| {
-                ca_cert.tbs_certificate.subject == certificate_to_validate.tbs_certificate.issuer
+                ca_cert.tbs_certificate().subject()
+                    == certificate_to_validate.tbs_certificate().issuer()
             })
             .ok_or(X509VerificationError::NoMatchingIssuer)
     }
@@ -305,8 +309,8 @@ fn verify_der_signature(
     certificate: &Certificate,
 ) -> Result<(), X509VerificationError> {
     let subject_public_key_info = certificate
-        .tbs_certificate
-        .subject_public_key_info
+        .tbs_certificate()
+        .subject_public_key_info()
         .owned_to_ref();
 
     let (spki_alg_oid, spki_alg_params) = subject_public_key_info
@@ -452,8 +456,8 @@ mod tests {
 
         // Now validate our data signature.
         let subject_public_key_info = server_cert
-            .tbs_certificate
-            .subject_public_key_info
+            .tbs_certificate()
+            .subject_public_key_info()
             .owned_to_ref();
 
         let verifier = EcdsaP384PublicKey::try_from(subject_public_key_info)
