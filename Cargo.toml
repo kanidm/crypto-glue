@@ -2,7 +2,7 @@
 name = "crypto-glue"
 description = "A facade over the RustCrypto ecosystem"
 version = "0.2.0"
-edition = "2021"
+edition = "2024"
 license = "MPL-2.0"
 homepage = "https://github.com/kanidm/crypto-glue/"
 repository = "https://github.com/kanidm/crypto-glue/"
@@ -11,9 +11,6 @@ authors = ["William Brown <william@blackhats.net.au>"]
 [features]
 default = ["alloc"]
 alloc = ["argon2/alloc"]
-
-[profile.dev.package.num-bigint-dig]
-opt-level = 3
 
 [dependencies]
 aes = "0.9.2"
