@@ -474,7 +474,7 @@ pub mod rsa {
     pub use rand;
     pub use rsa::BoxedUint as BigUint;
     pub use rsa::{pkcs1v15, Oaep};
-    pub use sha2::Sha256;
+    pub use sha2::{Sha256, Sha384};
 
     pub const MIN_BITS: usize = 2048;
 
@@ -484,6 +484,10 @@ pub mod rsa {
     pub type RS256Digest = Sha256;
     pub type RS256VerifyingKey = VerifyingKey<Sha256>;
     pub type RS256SigningKey = SigningKey<Sha256>;
+
+    pub type RS384Digest = Sha384;
+    pub type RS384VerifyingKey = VerifyingKey<Sha384>;
+    pub type RS384SigningKey = SigningKey<Sha384>;
 
     pub fn new_key(bits: usize) -> rsa::errors::Result<RsaPrivateKey> {
         let bits = std::cmp::max(bits, MIN_BITS);

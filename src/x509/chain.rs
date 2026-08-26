@@ -376,6 +376,18 @@ fn verify_der_signature(
                 .verify(data, &signature)
                 .map_err(|_err| X509VerificationError::SignatureVerificationFailed)?;
         }
+        (rfc5912::SHA_384_WITH_RSA_ENCRYPTION, rfc5912::RSA_ENCRYPTION, None) => {
+            let signature = RS256Signature::try_from(signature)
+                .map_err(|_err| X509VerificationError::DerSignatureInvalid)?;
+
+            let verifier = RS256PublicKey::try_from(subject_public_key_info)
+                .map(RS256VerifyingKey::new)
+                .map_err(|_err| X509VerificationError::VerifyingKeyFromSpki)?;
+
+            verifier
+                .verify(data, &signature)
+                .map_err(|_err| X509VerificationError::SignatureVerificationFailed)?;
+        }
         (signature_algorithm_oid, spki_alg_oid, spki_alg_params) => {
             error!(?signature_algorithm_oid, ?spki_alg_oid, ?spki_alg_params);
             return Err(X509VerificationError::SignatureAlgorithmNotImplemented);
