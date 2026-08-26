@@ -2,7 +2,7 @@ use crate::x509::{oiddb::rfc5912, AlgorithmIdentifier, BasicConstraints, Certifi
 use crate::{
     ecdsa_p256::{EcdsaP256DerSignature, EcdsaP256PublicKey, EcdsaP256VerifyingKey},
     ecdsa_p384::{EcdsaP384DerSignature, EcdsaP384PublicKey, EcdsaP384VerifyingKey},
-    rsa::{RS256PublicKey, RS256Signature, RS256VerifyingKey},
+    rsa::{RS256PublicKey, RS256Signature, RS256VerifyingKey, RS384VerifyingKey},
     s256::{Sha256, Sha256Output},
     traits::{hazmat::PrehashVerifier, Digest, Verifier},
 };
@@ -381,7 +381,7 @@ fn verify_der_signature(
                 .map_err(|_err| X509VerificationError::DerSignatureInvalid)?;
 
             let verifier = RS256PublicKey::try_from(subject_public_key_info)
-                .map(RS256VerifyingKey::new)
+                .map(RS384VerifyingKey::new)
                 .map_err(|_err| X509VerificationError::VerifyingKeyFromSpki)?;
 
             verifier
