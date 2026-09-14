@@ -1,7 +1,7 @@
 pub mod pkeyb64 {
     use crate::der::SecretDocument;
-    use base64::{engine::general_purpose, Engine as _};
-    use serde::{de::Error as DeError, Deserialize, Deserializer, Serializer};
+    use base64::{Engine as _, engine::general_purpose};
+    use serde::{Deserialize, Deserializer, Serializer, de::Error as DeError};
     use tracing::error;
 
     pub fn serialize<S>(key: &SecretDocument, ser: S) -> Result<S::Ok, S::Error>
@@ -38,9 +38,9 @@ pub mod x509b64 {
         traits::{DecodeDer, EncodeDer},
         x509::Certificate,
     };
-    use base64::{engine::general_purpose, Engine as _};
+    use base64::{Engine as _, engine::general_purpose};
     use serde::{
-        de::Error as DeError, ser::Error as SerError, Deserialize, Deserializer, Serializer,
+        Deserialize, Deserializer, Serializer, de::Error as DeError, ser::Error as SerError,
     };
     use tracing::error;
 

@@ -14,19 +14,23 @@ pub use const_oid::db as oiddb;
 pub use const_oid::{AssociatedOid, ObjectIdentifier};
 pub use der::asn1::{BitString, GeneralizedTime, Ia5String, OctetString};
 pub use x509_cert::builder::RequestBuilder as CertificateRequestBuilder;
-pub use x509_cert::builder::{Builder, CertificateBuilder, Profile, profile};
-pub use x509_cert::certificate::{Certificate, Version};
+pub use x509_cert::builder::{
+    Builder, CertificateBuilder, Error as CertBuilderError, Profile, profile,
+};
+pub use x509_cert::certificate::{Certificate, TbsCertificate, Version};
+pub use x509_cert::ext::Extension;
 pub use x509_cert::ext::pkix::name::{DistributionPointName, GeneralName, OtherName};
 pub use x509_cert::ext::pkix::{
-    crl::dp::DistributionPoint, crl::CrlDistributionPoints, AccessDescription,
-    AuthorityInfoAccessSyntax, AuthorityKeyIdentifier, BasicConstraints, ExtendedKeyUsage,
-    KeyUsage, KeyUsages, SubjectAltName, SubjectKeyIdentifier,
+    AccessDescription, AuthorityInfoAccessSyntax, AuthorityKeyIdentifier, BasicConstraints,
+    ExtendedKeyUsage, KeyUsage, KeyUsages, SubjectAltName, SubjectKeyIdentifier,
+    crl::CrlDistributionPoints, crl::dp::DistributionPoint,
 };
 pub use x509_cert::name::Name;
 pub use x509_cert::request::CertReq as CertificateRequest;
 pub use x509_cert::serial_number::SerialNumber;
 pub use x509_cert::spki::{
     AlgorithmIdentifier, SignatureBitStringEncoding, SubjectPublicKeyInfoOwned,
+    SubjectPublicKeyInfoRef,
 };
 pub use x509_cert::time::{Time, Validity};
 

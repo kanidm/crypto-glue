@@ -3,27 +3,27 @@ use crate::{
     x509::uuid_to_serial,
 };
 use crypto_common::Generate;
-use p384::ecdsa::{signature::Verifier, VerifyingKey};
+use p384::ecdsa::{VerifyingKey, signature::Verifier};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
 use uuid::Uuid;
 use x509_cert::builder::profile::cabf::{
-    tls::{CertificateType, Subordinate, Subscriber},
     Root,
+    tls::{CertificateType, Subordinate, Subscriber},
 };
 use x509_cert::builder::{Builder, CertificateBuilder, RequestBuilder};
 use x509_cert::certificate::CertificateInner;
+use x509_cert::der::Encode;
 use x509_cert::der::asn1::Ia5String;
 use x509_cert::der::flagset::FlagSet;
-use x509_cert::der::Encode;
 use x509_cert::ext::pkix::{
-    constraints::name::GeneralSubtree,
-    constraints::BasicConstraints,
-    crl::dp::DistributionPoint,
-    crl::CrlDistributionPoints,
-    name::{DistributionPointName, GeneralName},
     AuthorityKeyIdentifier, ExtendedKeyUsage, KeyUsage, KeyUsages, NameConstraints, SubjectAltName,
     SubjectKeyIdentifier,
+    constraints::BasicConstraints,
+    constraints::name::GeneralSubtree,
+    crl::CrlDistributionPoints,
+    crl::dp::DistributionPoint,
+    name::{DistributionPointName, GeneralName},
 };
 use x509_cert::name::Name;
 use x509_cert::request::CertReq;
@@ -493,12 +493,16 @@ pub(crate) fn build_test_csr(subject: &Name) -> (EcdsaP384SigningKey, CertReq) {
         .expect("client CSR signature should be byte-aligned");
     let client_cert_req_sig = EcdsaP384DerSignature::try_from(byte_sig)
         .expect("failed to parse client CSR DER signature");
-    assert!(extracted_public_key
-        .verify(&req_bytes, &client_cert_req_sig)
-        .is_ok());
-    assert!(client_verifying_key
-        .verify(&req_bytes, &client_cert_req_sig)
-        .is_ok());
+    assert!(
+        extracted_public_key
+            .verify(&req_bytes, &client_cert_req_sig)
+            .is_ok()
+    );
+    assert!(
+        client_verifying_key
+            .verify(&req_bytes, &client_cert_req_sig)
+            .is_ok()
+    );
 
     (client_signing_key, client_cert_req)
 }

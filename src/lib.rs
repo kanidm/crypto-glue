@@ -35,8 +35,8 @@ pub mod traits {
     pub use aes_gcm::aead::AeadInOut;
     pub use crypto_common::{Generate, KeyInit, OutputSizeUser};
     pub use der::{
-        pem::LineEnding as LineEndingPem, referenced::OwnedToRef, Decode as DecodeDer, DecodePem,
-        Encode as EncodeDer, EncodePem,
+        Decode as DecodeDer, DecodePem, Encode as EncodeDer, EncodePem,
+        pem::LineEnding as LineEndingPem, referenced::OwnedToRef,
     };
     pub use elliptic_curve::sec1::{FromSec1Point, ToSec1Point};
     pub use hmac::{Hmac, Mac};
@@ -63,12 +63,13 @@ pub mod traits {
 
         pub use rsa::signature::hazmat::PrehashVerifier;
     }
+    pub use x509_cert::ext::ToExtension;
 }
 
 pub mod x509;
 
 pub mod sha1 {
-    use hybrid_array::{sizes::U20, Array};
+    use hybrid_array::{Array, sizes::U20};
 
     pub use sha1::Sha1;
 
@@ -76,7 +77,7 @@ pub mod sha1 {
 }
 
 pub mod s256 {
-    use hybrid_array::{sizes::U32, Array};
+    use hybrid_array::{Array, sizes::U32};
 
     pub use sha2::Sha256;
 
@@ -84,7 +85,7 @@ pub mod s256 {
 }
 
 pub mod s384 {
-    use hybrid_array::{sizes::U48, Array};
+    use hybrid_array::{Array, sizes::U48};
 
     pub use sha2::Sha384;
 
@@ -92,7 +93,7 @@ pub mod s384 {
 }
 
 pub mod s512 {
-    use hybrid_array::{sizes::U64, Array};
+    use hybrid_array::{Array, sizes::U64};
 
     pub use sha2::Sha512;
 
@@ -112,8 +113,8 @@ pub mod hmac_s1 {
 
     use hmac::Hmac;
     use hmac::Mac;
-    use sha1::digest::CtOutput;
     use sha1::Sha1;
+    use sha1::digest::CtOutput;
     use zeroize::Zeroizing;
 
     pub type HmacSha1 = Hmac<Sha1>;
@@ -171,8 +172,8 @@ pub mod hmac_s256 {
 
     use hmac::Hmac;
     use hmac::Mac;
-    use sha2::digest::CtOutput;
     use sha2::Sha256;
+    use sha2::digest::CtOutput;
     use zeroize::Zeroizing;
 
     pub type HmacSha256 = Hmac<Sha256>;
@@ -229,8 +230,8 @@ pub mod hmac_s512 {
     use crypto_common::Output;
 
     use hmac::Hmac;
-    use sha2::digest::CtOutput;
     use sha2::Sha512;
+    use sha2::digest::CtOutput;
     use zeroize::Zeroizing;
 
     pub use hmac::Mac;
@@ -323,7 +324,7 @@ pub mod aes128gcm {
 }
 
 pub mod aes128kw {
-    use hybrid_array::{sizes::U24, Array};
+    use hybrid_array::{Array, sizes::U24};
 
     pub use crypto_common::KeyInit;
 
@@ -361,8 +362,8 @@ pub mod aes256 {
 }
 
 pub mod aes256gcm {
-    use aes::cipher::consts::{U12, U16};
     use aes::Aes256;
+    use aes::cipher::consts::{U12, U16};
     use aes_gcm::AesGcm;
 
     pub use aes_gcm::aead::{Aead, AeadInOut, Payload};
@@ -388,12 +389,12 @@ pub mod aes256gcm {
 pub mod aes256cbc {
     use crate::hmac_s256::HmacSha256;
     use crate::hmac_s256::HmacSha256Output;
-    use aes::cipher::consts::U16;
     use aes::cipher::Array;
+    use aes::cipher::consts::U16;
 
     pub use crate::aes256::Aes256Key;
 
-    pub use aes::cipher::{block_padding, BlockModeDecrypt, BlockModeEncrypt, KeyIvInit};
+    pub use aes::cipher::{BlockModeDecrypt, BlockModeEncrypt, KeyIvInit, block_padding};
 
     pub type Aes256CbcEnc = cbc::Encryptor<aes::Aes256>;
     pub type Aes256CbcDec = cbc::Decryptor<aes::Aes256>;
@@ -458,7 +459,7 @@ pub mod aes256cbc {
 }
 
 pub mod aes256kw {
-    use hybrid_array::{sizes::U40, Array};
+    use hybrid_array::{Array, sizes::U40};
 
     pub use crypto_common::KeyInit;
 
@@ -473,7 +474,7 @@ pub mod rsa {
 
     pub use rand;
     pub use rsa::BoxedUint as BigUint;
-    pub use rsa::{pkcs1v15, Oaep};
+    pub use rsa::{Oaep, pkcs1v15};
     pub use sha2::{Sha256, Sha384};
 
     pub const MIN_BITS: usize = 2048;
@@ -553,8 +554,8 @@ pub mod ecdsa_p256 {
     use elliptic_curve::sec1::FromSec1Point;
     use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
-    use hybrid_array::{sizes::U32, Array};
-    use p256::{ecdsa::DerSignature, NistP256};
+    use hybrid_array::{Array, sizes::U32};
+    use p256::{NistP256, ecdsa::DerSignature};
 
     pub type EcdsaP256Digest = <NistP256 as DigestAlgorithm>::Digest;
 
@@ -609,7 +610,7 @@ pub mod ecdsa_p384 {
     use elliptic_curve::sec1::FromSec1Point;
     use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
-    use p384::{ecdsa::DerSignature, NistP384};
+    use p384::{NistP384, ecdsa::DerSignature};
     // use sha2::digest::consts::U32;
 
     pub type EcdsaP384Digest = <NistP384 as DigestAlgorithm>::Digest;
@@ -663,7 +664,7 @@ pub mod ecdsa_p521 {
     use elliptic_curve::sec1::FromSec1Point;
     use elliptic_curve::sec1::Sec1Point;
     use elliptic_curve::{FieldBytes, PublicKey, SecretKey};
-    use p521::{ecdsa::DerSignature, NistP521};
+    use p521::{NistP521, ecdsa::DerSignature};
 
     pub type EcdsaP521Digest = <NistP521 as DigestAlgorithm>::Digest;
 
@@ -1053,19 +1054,18 @@ mod tests {
         use crate::x509::X509Display;
         use elliptic_curve::SecretKey;
         use rustls::{
-            self,
+            self, RootCertStore,
             client::{ClientConfig, ClientConnection},
             pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer, ServerName},
             server::{ServerConfig, ServerConnection},
-            RootCertStore,
         };
         use std::io::Read;
         use std::io::Write;
         #[cfg(unix)]
         use std::os::unix::net::UnixStream;
         use std::str::FromStr;
-        use std::sync::atomic::{AtomicU16, Ordering};
         use std::sync::Arc;
+        use std::sync::atomic::{AtomicU16, Ordering};
         use std::time::Duration;
         #[cfg(windows)]
         use uds_windows::UnixStream;
