@@ -386,6 +386,29 @@ pub mod aes256gcm {
     }
 }
 
+pub mod aes256cts {
+    use aes::cipher::Array;
+    use aes::cipher::consts::U16;
+
+    pub use crate::aes256::Aes256Key;
+    pub use aes::cipher::{BlockModeDecrypt, BlockModeEncrypt, InnerIvInit, KeyIvInit};
+
+    pub use cts::Decrypt as CtsDecrypt;
+    pub use cts::Encrypt as CtsEncrypt;
+
+    pub type Aes256CtsEnc = cts::CbcCs3<aes::Aes256>;
+    pub type Aes256CtsDec = cts::CbcCs3<aes::Aes256>;
+
+    pub type Aes256CtsIv = Array<u8, U16>;
+
+    /*
+    pub fn new_iv() -> Aes256CtsIv {
+        use crypto_common::Generate;
+        Aes256CtsIv::generate()
+    }
+    */
+}
+
 pub mod aes256cbc {
     use crate::hmac_s256::HmacSha256;
     use crate::hmac_s256::HmacSha256Output;
@@ -854,6 +877,31 @@ mod tests {
             .expect("Failed to decrypt message");
 
         assert_eq!(buffer, b"test message, super cool");
+    }
+
+    #[test]
+    fn aes256cts_basic() {
+        use crate::aes256;
+        use crate::aes256cts::{self, *};
+        use crate::traits::Generate;
+
+        let key = aes256::new_key();
+        let iv = Aes256CtsIv::generate();
+
+        let enc = aes256cts::Aes256CtsEnc::new(&key, &iv);
+
+        let original_buffer = b"plaintext message";
+        let mut buffer = original_buffer.clone();
+
+        enc.encrypt(&mut buffer).unwrap();
+
+        assert_ne!(&buffer, original_buffer);
+
+        let dec = aes256cts::Aes256CtsDec::new(&key, &iv);
+
+        dec.decrypt(&mut buffer).unwrap();
+
+        assert_eq!(&buffer, original_buffer);
     }
 
     #[test]

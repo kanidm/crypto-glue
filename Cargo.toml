@@ -22,6 +22,7 @@ cbc = "0.2.1"
 cipher = { version = "0.5", features = ["block-padding", "alloc"] }
 const-oid = "0.10"
 crypto-common = { version = "0.2.2", features = ["rand_core"] }
+cts = "0.7.0"
 der = "0.8.1"
 digest = { version = "0.11.0", default-features = false, features = ["mac"] }
 ecdsa = { version = "0.17", features = ["digest", "der", "pem"] }
