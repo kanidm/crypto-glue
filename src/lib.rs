@@ -38,6 +38,7 @@ pub mod traits {
         Decode as DecodeDer, DecodePem, Encode as EncodeDer, EncodePem,
         pem::LineEnding as LineEndingPem, referenced::OwnedToRef,
     };
+    pub use digest::FixedOutput;
     pub use elliptic_curve::sec1::{FromSec1Point, ToSec1Point};
     pub use hmac::{Hmac, Mac};
     pub use pkcs8::{
@@ -67,6 +68,10 @@ pub mod traits {
 }
 
 pub mod x509;
+
+pub mod md5 {
+    pub use md5::*;
+}
 
 pub mod sha1 {
     use hybrid_array::{Array, sizes::U20};
@@ -335,10 +340,16 @@ pub mod aes128kw {
 
 pub mod aes256 {
     use aes;
+    use aes::cipher::Array;
     use crypto_common::Key;
     use zeroize::Zeroizing;
 
+    pub use aes::Aes256;
+    pub use aes::cipher::{BlockCipherDecrypt, BlockCipherEncrypt};
+
     pub type Aes256Key = Zeroizing<Key<aes::Aes256>>;
+    pub type Aes256BlockSize = <aes::Aes256 as aes::cipher::BlockSizeUser>::BlockSize;
+    pub type Aes256Block = Array<u8, <aes::Aes256 as aes::cipher::BlockSizeUser>::BlockSize>;
 
     pub fn key_size() -> usize {
         use crypto_common::KeySizeUser;
@@ -401,12 +412,10 @@ pub mod aes256cts {
 
     pub type Aes256CtsIv = Array<u8, U16>;
 
-    /*
     pub fn new_iv() -> Aes256CtsIv {
         use crypto_common::Generate;
         Aes256CtsIv::generate()
     }
-    */
 }
 
 pub mod aes256cbc {

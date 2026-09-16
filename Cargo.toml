@@ -32,6 +32,7 @@ hex = "0.4.3"
 hkdf = "0.13"
 hmac = "0.13.0"
 kbkdf = { version = "0.1.0-rc.1" }
+md5 = { version = "0.8.1" }
 p256 = { version = "0.14", features = ["ecdh", "pem"] }
 p384 = "0.14"
 p521 = "0.14"
