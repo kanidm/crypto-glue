@@ -1,15 +1,15 @@
 use crate::x509::Certificate;
 use const_oid::AssociatedOid;
 use std::fmt;
-use x509_cert::der::referenced::OwnedToRef;
 use x509_cert::der::Decode;
-use x509_cert::ext::pkix::name::GeneralName;
+use x509_cert::der::referenced::OwnedToRef;
 use x509_cert::ext::pkix::AuthorityKeyIdentifier;
 use x509_cert::ext::pkix::BasicConstraints;
 use x509_cert::ext::pkix::ExtendedKeyUsage;
 use x509_cert::ext::pkix::KeyUsage;
 use x509_cert::ext::pkix::SubjectAltName;
 use x509_cert::ext::pkix::SubjectKeyIdentifier;
+use x509_cert::ext::pkix::name::GeneralName;
 use x509_cert::spki::SubjectPublicKeyInfoRef;
 
 const INDENT: usize = 2;

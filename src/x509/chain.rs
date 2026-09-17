@@ -1,13 +1,13 @@
-use crate::x509::{oiddb::rfc5912, AlgorithmIdentifier, BasicConstraints, Certificate, KeyUsage};
+use crate::x509::{AlgorithmIdentifier, BasicConstraints, Certificate, KeyUsage, oiddb::rfc5912};
 use crate::{
     ecdsa_p256::{EcdsaP256DerSignature, EcdsaP256PublicKey, EcdsaP256VerifyingKey},
     ecdsa_p384::{EcdsaP384DerSignature, EcdsaP384PublicKey, EcdsaP384VerifyingKey},
     rsa::{RS256PublicKey, RS256Signature, RS256VerifyingKey, RS384VerifyingKey},
     s256::{Sha256, Sha256Output},
-    traits::{hazmat::PrehashVerifier, Digest, Verifier},
+    traits::{Digest, Verifier, hazmat::PrehashVerifier},
 };
-use der::referenced::OwnedToRef;
 use der::Encode;
+use der::referenced::OwnedToRef;
 use std::time::{Duration, SystemTime};
 use tracing::{debug, error, trace, warn};
 
