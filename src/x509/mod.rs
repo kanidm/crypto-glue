@@ -13,6 +13,7 @@ pub use self::serialise::{pkeyb64, x509b64};
 pub use const_oid::db as oiddb;
 pub use const_oid::{AssociatedOid, ObjectIdentifier};
 pub use der::asn1::{BitString, GeneralizedTime, Ia5String, OctetString};
+pub use x509_cert::attr::Attribute;
 pub use x509_cert::builder::RequestBuilder as CertificateRequestBuilder;
 pub use x509_cert::builder::{
     Builder, CertificateBuilder, Error as CertBuilderError, Profile, profile,
