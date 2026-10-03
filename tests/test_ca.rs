@@ -1,8 +1,8 @@
-use crate::{
+use crypto_common::Generate;
+use crypto_glue::{
     ecdsa_p384::{EcdsaP384DerSignature, EcdsaP384SigningKey},
     x509::uuid_to_serial,
 };
-use crypto_common::Generate;
 use p384::ecdsa::{VerifyingKey, signature::Verifier};
 use std::str::FromStr;
 use std::time::{Duration, SystemTime};
@@ -56,7 +56,7 @@ pub fn now() -> SystemTime {
         }
 
         let now = now().unwrap_throw() as u64;
-        UNIX_EPOCH.checked_add(Duration::from_millis(now)).unwrap()
+        UNIX_EPOCH + Duration::from_millis(now)
     }
 
     #[cfg(not(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none"))))]
@@ -305,7 +305,7 @@ pub(crate) fn build_test_ca_int(
         .expect("Unable to add extension");
 
     let int_cert = builder
-        .build::<EcdsaP384SigningKey, EcdsaP384DerSignature>(&root_signing_key)
+        .build::<EcdsaP384SigningKey, EcdsaP384DerSignature>(root_signing_key)
         .expect("failed to build intermediate CA certificate");
 
     // let cert_der = int_cert
@@ -469,7 +469,7 @@ pub(crate) fn build_test_csr(subject: &Name) -> (EcdsaP384SigningKey, CertReq) {
     // Need to check the algorithm ID in future.
     let spki = &client_cert_req.info.public_key;
 
-    println!("--> {:?}", &spki);
+    println!("--> {spki:?}");
 
     let extracted_public_key = VerifyingKey::from_public_key_der(
         // spki.subject_public_key
@@ -555,7 +555,7 @@ pub(crate) fn test_ca_sign_client_csr(
 
     let spki = &cert_req.info.public_key;
 
-    println!("--> {:?}", &spki);
+    println!("--> {spki:?}");
 
     let mut builder = CertificateBuilder::new(
         profile,
@@ -582,7 +582,7 @@ pub(crate) fn test_ca_sign_client_csr(
         .expect("Unable to add extension");
 
     let client_cert = builder
-        .build::<EcdsaP384SigningKey, EcdsaP384DerSignature>(&ca_signing_key)
+        .build::<EcdsaP384SigningKey, EcdsaP384DerSignature>(ca_signing_key)
         .expect("failed to build client certificate");
 
     // let client_cert_der = client_cert
@@ -773,7 +773,7 @@ pub(crate) fn test_ca_sign_server_csr(
 
     let spki = &cert_req.info.public_key;
 
-    println!("--> {:?}", &spki);
+    println!("--> {spki:?}");
 
     let mut builder = CertificateBuilder::new(
         profile,
@@ -800,7 +800,7 @@ pub(crate) fn test_ca_sign_server_csr(
         .expect("Unable to add extension");
 
     let server_cert = builder
-        .build::<EcdsaP384SigningKey, EcdsaP384DerSignature>(&ca_signing_key)
+        .build::<EcdsaP384SigningKey, EcdsaP384DerSignature>(ca_signing_key)
         .expect("Failed to build server certificate");
 
     // let server_cert_der = server_cert
