@@ -1,4 +1,4 @@
-use crate::{
+use crypto_glue::{
     ecdsa_p384::{EcdsaP384DerSignature, EcdsaP384SigningKey},
     x509::uuid_to_serial,
 };
