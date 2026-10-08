@@ -53,15 +53,16 @@ x509-cert = { version = "0.3", features = ["builder", "hazmat"] }
 zeroize = { version = "1.6.0", features = ["serde"] }
 
 [dev-dependencies]
-rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "std"] }
-# rustls = { version = "0.23", default-features = false, features = ["custom-provider", "std"] }
-# rustls-rustcrypto = "0.0.2-alpha"
 tracing-subscriber = "^0.3.20"
 
 [target.'cfg(windows)'.dev-dependencies]
 # For UnixStream on Windows
 # TODO: replace with stdlib when stable: https://github.com/rust-lang/rust/issues/150487
 uds_windows = "1.2.1"
+
+[target.'cfg(any(unix, windows))'.dev-dependencies]
+# rustls is only used for tests on these platforms, because aws-lc-rs doesn't run on WASM32
+rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "std"] }
 
 [target.'cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))'.dev-dependencies]
 # Per https://docs.rs/getrandom/latest/getrandom/#webassembly-support, we don't want to add
@@ -73,7 +74,7 @@ uds_windows = "1.2.1"
 # Sources of time and entropy in a WASM+JS environment, enabling features in transitive dependencies
 # via feature unification. Binary users of this library will need something similar for their target
 # platform.
-getrandom = { version = "0.2.17", features = ["js"] }
+getrandom = { version = "0.4.3", features = ["wasm_js"] }
 rustls-pki-types = { version = "1.14.0", features = ["web"] }
 uuid = { version = "1.20.0", features = ["js"] }
 

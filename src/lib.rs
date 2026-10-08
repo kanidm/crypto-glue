@@ -900,15 +900,15 @@ mod tests {
         let enc = aes256cts::Aes256CtsEnc::new(&key, &iv);
 
         let original_buffer = b"plaintext message";
-        let mut buffer = original_buffer.clone();
+        let mut buffer = *original_buffer;
 
-        enc.encrypt(&mut buffer).unwrap();
+        enc.encrypt(&mut buffer).expect("encryption failed");
 
         assert_ne!(&buffer, original_buffer);
 
         let dec = aes256cts::Aes256CtsDec::new(&key, &iv);
 
-        dec.decrypt(&mut buffer).unwrap();
+        dec.decrypt(&mut buffer).expect("decryption failed");
 
         assert_eq!(&buffer, original_buffer);
     }
