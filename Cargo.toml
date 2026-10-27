@@ -75,10 +75,8 @@ rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", 
 # via feature unification. Binary users of this library will need something similar for their target
 # platform.
 getrandom = { version = "0.4.3", features = ["wasm_js"] }
-rustls-pki-types = { version = "1.14.0", features = ["web"] }
 uuid = { version = "1.20.0", features = ["js"] }
 
 # wasm-bindgen and wasm-bindgen-test are only directly used by tests.
 wasm-bindgen = { version = "0.2.121" }
 wasm-bindgen-test = "0.3.0"
-
