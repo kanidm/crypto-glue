@@ -5,7 +5,7 @@ mod test_ca;
 #[test]
 fn rustls_mtls_basic() {
     use crate::test_ca::*;
-    use crypto_glue::x509::X509Display;
+    use crypto_glue::{time::now, x509::X509Display};
     use elliptic_curve::SecretKey;
     use rustls::{
         self, RootCertStore,

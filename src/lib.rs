@@ -42,6 +42,7 @@ pub mod s256;
 pub mod s384;
 pub mod s512;
 pub mod sha1;
+pub mod time;
 pub mod traits;
 pub mod x509;
 
