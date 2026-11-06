@@ -64,6 +64,9 @@ uds_windows = "1.2.1"
 # rustls is only used for tests on these platforms, because aws-lc-rs doesn't run on WASM32
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "std"] }
 
+[target.'cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))'.dependencies]
+wasm-bindgen = { version = "0.2.121" }
+
 [target.'cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))'.dev-dependencies]
 # Per https://docs.rs/getrandom/latest/getrandom/#webassembly-support, we don't want to add
 # dependencies for WASM+JS environments unconditionally to all WASM targets.
@@ -77,6 +80,5 @@ rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", 
 getrandom = { version = "0.4.3", features = ["wasm_js"] }
 uuid = { version = "1.20.0", features = ["js"] }
 
-# wasm-bindgen and wasm-bindgen-test are only directly used by tests.
-wasm-bindgen = { version = "0.2.121" }
+# wasm-bindgen-test is only directly used by tests.
 wasm-bindgen-test = "0.3.0"
