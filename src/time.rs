@@ -1,15 +1,14 @@
 //! Time functions.
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-/// [`SystemTime::now`][] equivalent that uses `Date.now()` on WASM.
-#[cfg_attr(
-    not(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none"))),
-    inline
-)]
-pub fn now() -> SystemTime {
+/// Return the [Duration] since the [UNIX epoch][UNIX_EPOCH].
+///
+/// Returns a zero duration if the current system time is set to before the epoch.
+///
+/// On WASM targets, throws a WASM-level exception if `Date.now()` is not available.
+pub fn time_since_epoch() -> Duration {
     #[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
     {
-        use std::time::{Duration, UNIX_EPOCH};
         use wasm_bindgen::prelude::*;
 
         #[wasm_bindgen]
@@ -20,7 +19,26 @@ pub fn now() -> SystemTime {
         }
 
         let now = now().unwrap_throw() as u64;
-        UNIX_EPOCH + Duration::from_millis(now)
+        Duration::from_millis(now)
+    }
+
+    #[cfg(not(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none"))))]
+    {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+    }
+}
+
+/// [`SystemTime::now`][] equivalent that uses `Date.now()` on WASM.
+#[cfg_attr(
+    not(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none"))),
+    inline
+)]
+pub fn now() -> SystemTime {
+    #[cfg(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none")))]
+    {
+        UNIX_EPOCH + time_since_epoch()
     }
 
     #[cfg(not(all(target_arch = "wasm32", any(target_os = "unknown", target_os = "none"))))]
