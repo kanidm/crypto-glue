@@ -57,6 +57,28 @@ jobs:
       - name: test
         run: cargo test
 
+  wasi:
+    name: WASI (wasmtime)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          targets: wasm32-wasip2
+      - uses: mozilla-actions/sccache-action@v0.0.10
+
+      - name: Install wasmtime
+        run: curl https://wasmtime.dev/install.sh -sSf | bash
+
+      - name: Add wasmtime to PATH
+        run: echo "$HOME/.wasmtime/bin" >> "$GITHUB_PATH"
+
+      - name: Build and test
+        run: cargo test --target wasm32-wasip2
+
   wasm:
     name: WASM
     runs-on: ubuntu-latest
